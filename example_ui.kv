@@ -1,0 +1,61 @@
+
+BoxLayout:
+    id: box_root
+    orientation: 'vertical'
+    
+    Label:
+        size_hint_y: None
+        height: '50dp'
+        text: 'usbserial4a example'
+    
+    ScreenManager:
+        id: sm
+        on_parent: app.uiDict['sm'] = self
+        
+        Screen:
+            name: 'screen_scan'
+            BoxLayout:
+                orientation: 'vertical'
+                ScrollView:
+                    BoxLayout:
+                        id: box_list
+                        orientation: 'vertical'
+                        on_parent: app.uiDict['box_list'] = self
+                        size_hint_y: None
+                        height: max(self.minimum_height, self.parent.height)
+                Button:
+                    id: btn_scan
+                    on_parent: app.uiDict['btn_scan'] = self
+                    size_hint_y: None
+                    height: '50dp'
+                    text: 'Scan USB Device'
+                    on_release: app.on_btn_scan_release()
+    
+        Screen:
+            name: 'screen_test'
+            BoxLayout:
+                orientation: 'vertical'
+                ScrollView:
+                    size_hint_y: None
+                    height: '50dp'
+                    TextInput:
+                        id: txtInput_write
+                        on_parent: app.uiDict['txtInput_write'] = self
+                        size_hint_y: None
+                        height: max(self.minimum_height, self.parent.height)
+                        text: ''
+                Button:
+                    id: btn_write
+                    on_parent: app.uiDict['btn_write'] = self
+                    size_hint_y: None
+                    height: '50dp'
+                    text: 'Write'
+                    on_release: app.on_btn_write_release()
+                ScrollView:
+                    TextInput:
+                        id: txtInput_read
+                        on_parent: app.uiDict['txtInput_read'] = self
+                        size_hint_y: None
+                        height: max(self.minimum_height, self.parent.height)
+                        readonly: True
+                        text: ''

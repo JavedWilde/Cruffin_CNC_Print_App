@@ -1,0 +1,30 @@
+BoxLayout:
+    id: box_root
+    orientation : 'vertical'
+
+    Label:
+        size_hint_y : None
+        height: '50dp'
+        text: 'Cruffin Cnc Interface'
+        canvas.before:
+            Color:
+                rgba : (0.75,0.25,0.4,1)
+            Rectangle:
+                size:self.size
+                pos:self.pos
+
+    ScreenManager:
+        id: sm
+
+        Screen:
+            name : 'connect'
+            BoxLayout:
+                orientation:'vertical'
+                Label:
+                    text: 'Connect the device via Usb and press connect.'
+                Button:
+                    text:'Connect'
+                    id: connect_button
+                    size_hint_y : None
+                    height :'100dp'
+                    on_release : app.on_button_connect()
