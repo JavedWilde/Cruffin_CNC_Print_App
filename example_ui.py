@@ -84,7 +84,8 @@ BoxLayout:
                         size_hint_y: None
                         height: max(self.minimum_height, self.parent.height)
                         readonly: True
-                        text: '''''
+                        text: ''
+'''
 BAUD = 115200
 
 class MainApp(App):
