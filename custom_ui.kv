@@ -15,13 +15,17 @@ BoxLayout:
 
     ScreenManager:
         id: sm
-
+        on_parent : app.uiDict['sm'] = self
         Screen:
             name : 'connect'
             BoxLayout:
                 orientation:'vertical'
                 Label:
                     text: 'Connect the device via Usb and press connect.'
+                Label:
+                    text: ''
+                    on_parent: app.uiDict['connecterror'] = self
+                    color: 1 , 0 , 0 , 1
                 Button:
                     text:'Connect'
                     id: connect_button
