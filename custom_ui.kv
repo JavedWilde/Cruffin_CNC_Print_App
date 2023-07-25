@@ -1,4 +1,10 @@
 BoxLayout:
+    canvas.before:  
+        Color:
+            rgba: 0.15, 0.15, 0.15, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
     id: box_root
     orientation : 'vertical'
 
@@ -32,3 +38,94 @@ BoxLayout:
                     size_hint_y : None
                     height :'100dp'
                     on_release : app.on_button_connect()
+        Screen:
+            name : 'main'
+            BoxLayout:
+                orientation: 'vertical'
+                LongpressButton:
+                    text: 'Alarm'
+                    background_normal: ''
+                    background_color: 1,0,0,1
+                    size_hint_y : None
+                    height : '100dp'
+                    long_press_time: 1
+                    on_long_press: app.on_button_open_developer_screen()
+                    on_parent: app.uiDict['status'] = self
+
+                BoxLayout:
+                    orientation: 'vertical'
+                    GridLayout:
+                        cols:2
+                        size_hint_y : None
+                        height : '100dp'
+                        Button:
+                            text:'Home Device'
+                            on_release: app.on_button_home()
+                        Button:
+                            text:'Load Plate'
+                            on_release: app.on_button_origin()
+
+                    TextInput:
+                        id: 'nameinput'
+                        text:''
+                        size_hint_y: None
+                        height:'50dp'
+                        multiline: False
+                        on_parent: app.uiDict['nameinput'] = self
+                    GridLayout:
+                        cols: 4
+                        size_hint_y : None
+                        height : '100dp'
+                        Button:
+                            text:'Start Printing'
+                            on_release : app.on_button_start()
+                        BoxLayout:
+                            orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'vertical'
+                    BoxLayout:
+                        orientation : 'vertical'
+                        TextInput:
+                            id: 'output'
+                            text: ''
+                            readonly:True
+                            background_color: 0.5,0.5,0.5,1
+                            on_parent: app.uiDict['output'] = self
+        Screen:
+            name: 'developer'
+            BoxLayout:
+                orientation:'vertical'
+                TextInput:
+                    id:'developerinput'
+                    text:''
+                    size_hint_y: None
+                    height : '50dp'
+                    multiline: False
+                    on_parent: app.uiDict['developerinput'] = self
+                GridLayout:
+                    cols: 4
+                    size_hint_y : None
+                    height : '100dp'
+                    Button:
+                        text:'Send'
+                        on_release : app.on_button_developer_send()
+                    Button:
+                        text:'Back'     
+                        on_release : app.uiDict['sm'].current = 'main'
+                    BoxLayout:
+                        orientation: 'vertical'
+                    BoxLayout:
+                        orientation: 'vertical'
+
+                TextInput:
+                    id: 'developeroutput'
+                    text: ''
+                    readonly:True
+                    background_color: 0.5,0.5,0.5,1
+                    on_parent: app.uiDict['developeroutput'] = self
+                
+                            
+                        
+
