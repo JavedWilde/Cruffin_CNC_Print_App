@@ -1,6 +1,7 @@
-from svgpathtools import Path, wsvg, parse_path
+from svgpathtools import Path, parse_path
+import svgwrite
 import xml.etree.ElementTree as ET
-from svg_to_gcode.svg_parser import parse_file
+from svg_to_gcode.svg_parser import parse_string
 from svg_to_gcode.compiler import Compiler, interfaces
 import math
 
@@ -22,7 +23,7 @@ def GetGlyphDictionary(filepath):
         dict[glyph.attrib['unicode']] = [d,horiz_adv_x]
     return dict
 
-def GenerateGcode(move_speed, cut_speed):
+def GenerateGcode(move_speed, cut_speed, svg):
     gcode_compiler = Compiler(
         interfaces.Gcode,
         movement_speed=move_speed,
@@ -30,7 +31,7 @@ def GenerateGcode(move_speed, cut_speed):
         pass_depth=0,
     )
 
-    curves = parse_file("/tmp/svg.svg")  # Parse an svg file into geometric curves
+    curves = parse_string(svg)  # Parse an svg file into geometric curves
 
     gcode_compiler.append_curves(curves)
     gcode = gcode_compiler.compile(passes=1)
@@ -39,7 +40,7 @@ def GenerateGcode(move_speed, cut_speed):
     # save the gcode to a file
     return gcode
 
-def SaveSvg(paths):
+def GetSvg(paths):
     xmin, xmax, ymin, ymax = Path(*[seg for pa in paths for seg in pa]).bbox()
     dx = xmax - xmin
     dy = ymax - ymin
@@ -50,8 +51,13 @@ def SaveSvg(paths):
         'viewBox': viewbox,
         'preserveAspectRatio': 'xMinYMin meet'
     }
-    wsvg(paths=paths,
-            svg_attributes=attr, filename='/tmp/svg.svg')
+    dwg = svgwrite.Drawing()
+    for path in paths:
+        dwg.add(dwg.path(d=path.d(), stroke='black', fill='none'))
+    svg_string = dwg.tostring()
+    # svg_string = wsvg(paths=paths,
+    #         svg_attributes=attr, filename=None)
+    return svg_string
     
     
 def CheckAr(paths):
@@ -270,9 +276,8 @@ def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, let
         final_paths = GetMultiLine(text, fontDict)
     
     print(active_bed_size)
-    SaveSvg(final_paths)
 
-    gcode = GenerateGcode(move_speed, cut_speed)
+    gcode = GenerateGcode(move_speed, cut_speed, GetSvg(final_paths))
     gcode, bbox = GcodeScale(gcode,1,-1)
     gcode, bbox = GcodeMove(gcode,(bbox[0] * -1) + 1,(bbox[2] * -1) + 1)
     scalefactor = active_bed_size[0]/bbox[1]

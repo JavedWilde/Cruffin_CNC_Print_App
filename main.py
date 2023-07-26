@@ -5,6 +5,8 @@ from kivy.utils import platform
 from kivy.factory import Factory
 from kivy.clock import Clock, mainthread
 import threading
+
+from serial import SerialException
 import Helpers
 
 if platform == 'android':
@@ -57,6 +59,7 @@ class MainApp(App):
         self.status_thread = None
         self.machine_status = 'Alarm'
         self.machine_connected = True
+        self.canceling_print = False
         super(MainApp, self).__init__(*args, **kwargs)
     
     def build(self):
@@ -158,9 +161,55 @@ class MainApp(App):
         print('preparing')
         self.uiDict['connectionlog'].text = 'Preparing........'
         self.set_origin()
+        self.status_thread.resume()
+        time.sleep(2)
+        while True:
+            if self.machine_status == 'Idle':
+                self.uiDict['connectionlog'].text = 'Prepare Complete'
+                print('Prepare Complete')
+                self.status_thread.pause()
+                break
         print('ready')
         self.uiDict['connectionlog'].text = 'Ready'
         self.set_screen('main') 
+
+    def printing_thread(self):
+        self.set_screen('printing')
+        fontFile = f'Fonts/SVGFONT ({0}).svg' #change numbers for different fonts, 0 - 18
+        gcode = Helpers.GetGcode(self.uiDict['nameinput'].text,fontFile,0,0,0.9,750,750,25,6)
+        self.read_thread.pause()
+
+        lines = gcode.split('\n')
+        for i ,line in enumerate(lines):
+            if self.canceling_print:
+                break
+            l = line.strip() # Strip all EOL characters for consistency
+            print ('Sending: ' + l),
+            self.serial_port.write(bytes(line + '\n','utf8')) # Send g-code block to grbl
+            grbl_out = bytes(self.serial_port.readline()).decode('utf8').strip() # Wait for grbl response with carriage return
+            print ("Response: " + grbl_out)
+
+        if self.canceling_print:
+            self.uiDict['printstatus'].text = 'Cancelling...............'
+            time.sleep(1)
+            self.send_command('G0F1000Z1')
+            time.sleep(1)
+            self.send_command('G0F1000Y60')
+            time.sleep(1)
+        else:
+            self.uiDict['printstatus'].text = 'Print Complete, Unloading.........'
+        
+        self.status_thread.resume()
+        self.read_thread.resume()
+        time.sleep(2)
+        while True:
+            if self.machine_status == 'Idle':
+                self.canceling_print = False
+                self.set_screen('main')
+                self.status_thread.pause()
+                break
+
+    
 
     # Main Thread Transfer Functions    
     @mainthread
@@ -195,18 +244,20 @@ class MainApp(App):
     # BUTTON ACTIONS
     def on_button_connect(self):
         if platform == 'android':
-            self.uiDict['connecterror'].text = 'Android\n'
             if len(usb.get_usb_device_list())<1:
                 self.uiDict['connecterror'].text = 'No device found, make sure the connections are fine.'
                 return
-            try:
+            try: 
                 usb_device = usb.get_usb_device_list()[0]
-                print(usb_device)
+                if not usb_device:
+                    raise SerialException(
+                        "Device {} not present!".format(usb_device.getDeviceName())
+                    )
                 if not usb.has_usb_permission(usb_device):
                     usb.request_usb_permission(usb_device)
                     return
                 self.serial_port = serial4a.get_serial_port(
-                    usb_device,
+                    usb_device.getDeviceName(),
                     115200,
                     8,
                     'N',
@@ -216,8 +267,6 @@ class MainApp(App):
                 
             except Exception as e:
                 self.uiDict['connecterror'].text += str(e)
-                print(usb_device)
-                print(usb.get_usb_device_list())
                 return
         else:
             if len(list_ports.comports())<2:
@@ -255,28 +304,18 @@ class MainApp(App):
             return
  
     def on_button_start(self):
-        fontFile = f'Fonts/SVGFONT ({0}).svg' #change numbers for different fonts, 0 - 18
-        gcode = Helpers.GetGcode(self.uiDict['nameinput'].text,fontFile,0,0,0.9,750,750,25,6)
-        self.read_thread.pause()
-        self.status_thread.pause()
-
-        lines = gcode.split('\n')
-        for i ,line in enumerate(lines):
-            l = line.strip() # Strip all EOL characters for consistency
-            print ('Sending: ' + l),
-            self.serial_port.write(bytes(line + '\n','utf8')) # Send g-code block to grbl
-            grbl_out = bytes(self.serial_port.readline()).decode('utf8').strip() # Wait for grbl response with carriage return
-            print ("Response: " + grbl_out)
+        threading.Thread(target=self.printing_thread, daemon=True).start()
         
-        self.read_thread.resume()
-        self.status_thread.resume()
-    
     def on_button_open_developer_screen(self):
         self.uiDict['sm'].current = 'developer'
 
     def on_button_developer_send(self):
         self.send_command(self.uiDict['developerinput'].text)
         self.uiDict["developerinput"].text = ''
+
+    def on_button_print_cancel(self):
+        if not self.canceling_print:
+            self.canceling_print = True
 
 if __name__ == '__main__':
     MainApp().run()

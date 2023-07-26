@@ -125,6 +125,19 @@ BoxLayout:
                 Label:
                     text : ''
                     on_parent : app.uiDict['connectionlog'] = self
+
+        Screen:
+            name : 'printing'
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    text : 'Printing.....'
+                    on_parent: app.uiDict['printstatus'] = self
+
+                Button:
+                    text : 'Cancel'
+                    on_release: app.on_button_print_cancel()
+            
                 
                             
                         
