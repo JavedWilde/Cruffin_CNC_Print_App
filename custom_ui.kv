@@ -43,9 +43,9 @@ BoxLayout:
             BoxLayout:
                 orientation: 'vertical'
                 LongpressButton:
-                    text: 'Alarm'
+                    text: 'Dev Console'
                     background_normal: ''
-                    background_color: 1,0,0,1
+                    background_color: 0,0,0,1
                     size_hint_y : None
                     height : '100dp'
                     long_press_time: 1
@@ -54,16 +54,6 @@ BoxLayout:
 
                 BoxLayout:
                     orientation: 'vertical'
-                    GridLayout:
-                        cols:2
-                        size_hint_y : None
-                        height : '100dp'
-                        Button:
-                            text:'Home Device'
-                            on_release: app.on_button_home()
-                        Button:
-                            text:'Load Plate'
-                            on_release: app.on_button_origin()
 
                     TextInput:
                         id: 'nameinput'
@@ -125,6 +115,16 @@ BoxLayout:
                     readonly:True
                     background_color: 0.5,0.5,0.5,1
                     on_parent: app.uiDict['developeroutput'] = self
+
+
+
+        Screen:
+            name: 'connecting'
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    text : ''
+                    on_parent : app.uiDict['connectionlog'] = self
                 
                             
                         

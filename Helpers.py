@@ -323,6 +323,4 @@ def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, let
             gcode += line + "\n"
 
     gcode = Process_gcode(gcode)
-    with open(f"drawing.gcode", "w+") as f:
-        f.write(gcode)
     return gcode
