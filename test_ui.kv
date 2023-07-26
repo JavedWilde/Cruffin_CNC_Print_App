@@ -1,0 +1,58 @@
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+#:import Gradient kivy_gradient.Gradient
+BoxLayout:
+    orientation: 'vertical'
+    canvas.before:
+        Rectangle:
+            pos:self.pos
+            size:self.size
+            texture: Gradient.vertical(get_color_from_hex('141414'),get_color_from_hex('070606'))
+    Image:
+        source: 'Icons/grid.png'
+        fit_mode : 'cover'
+
+        Image:
+            source : 'Icons/cruffin_tech.png'
+            center_x : self.parent.center_x
+            top: self.parent.top
+        Image:
+            source: 'Icons/disconnected.png'
+            center_x : self.parent.center_x
+            top : self.parent.top - dp(75)
+            size_hint: None, None
+            size: dp(75), dp(75)
+            LongpressButton:
+                name: 'none'
+                center_x : self.parent.center_x
+                center_y: self.parent.center_y
+                size: self.parent.size
+                background_color: 0,0,0,0
+                long_press_time : 10
+
+                on_long_press : print('long')
+
+        Image:
+            source: 'Icons/ins.png'
+            center_x : self.parent.center_x
+            center_y : self.parent.center_y + dp(50)
+            size_hint: None, None
+            size: dp(400), dp(400)
+
+        Image: 
+            source: 'Icons/bottom.png'
+            center_x: self.parent.center_x
+            center_y : dp(-75)
+            size_hint: None, None
+            size : dp(400),dp(400)
+
+        ImageButton:
+            #text:'Connect'
+            
+            on_press : self.source = 'Icons/connect_button_down.png'
+            on_release: self.source = 'Icons/connect_button_up.png'
+            
+            source : 'Icons/connect_button_up.png'
+            center_x : self.parent.center_x
+            center_y : dp(100)
+            size_hint: None, None
+            size: dp(175), dp(175)

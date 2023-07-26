@@ -195,11 +195,13 @@ class MainApp(App):
     # BUTTON ACTIONS
     def on_button_connect(self):
         if platform == 'android':
+            self.uiDict['connecterror'].text = 'Android\n'
             if len(usb.get_usb_device_list())<1:
                 self.uiDict['connecterror'].text = 'No device found, make sure the connections are fine.'
                 return
             try:
                 usb_device = usb.get_usb_device_list()[0]
+                print(usb_device)
                 if not usb.has_usb_permission(usb_device):
                     usb.request_usb_permission(usb_device)
                     return
@@ -213,7 +215,9 @@ class MainApp(App):
                 )
                 
             except Exception as e:
-                self.uiDict['connecterror'].text = str(e)
+                self.uiDict['connecterror'].text += str(e)
+                print(usb_device)
+                print(usb.get_usb_device_list())
                 return
         else:
             if len(list_ports.comports())<2:
