@@ -7,7 +7,7 @@ from kivy.uix.screenmanager import SlideTransition
 from kivy.core.text import LabelBase
 
 factor = 1
-Window.size = (int(390/factor),int(866/factor))
+Window.size = (int(1080/factor),int(2412/factor))
 
 class MainApp(MDApp):
     def __init__(self, **kwargs):
