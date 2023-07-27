@@ -11,9 +11,8 @@ Window.size = (int(390/factor),int(866/factor))
 
 class MainApp(MDApp):
     def __init__(self, **kwargs):
-        
-        super().__init__(**kwargs)
         self.uiDict = {}
+        super().__init__(**kwargs)
 
     def build(self):
         LabelBase.register(name='Lexend-Medium', fn_regular='UiFonts/Lexend/Lexend-Medium.ttf')
@@ -21,8 +20,8 @@ class MainApp(MDApp):
         return self.main_widget
     
     def load_screen(self,screen,direction='left'):
-        self.main_widget.ids.screenmanager.transition = SlideTransition(direction=direction, duration=.25)
-        self.main_widget.ids.screenmanager.current = screen
+        self.uiDict['sm'].transition = SlideTransition(direction=direction, duration=.25)
+        self.uiDict['sm'].current = screen
 
     # BUTTONS
     def on_button_connect(self):
@@ -30,6 +29,7 @@ class MainApp(MDApp):
         self.load_screen('main')
         
     def on_button_print(self):
+        self.load_screen('printing')
         pass
     
     def on_button_reset(self):

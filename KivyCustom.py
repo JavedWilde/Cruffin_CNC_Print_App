@@ -2,6 +2,7 @@ from kivy.uix.image import Image
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.factory import Factory
 from kivy.clock import Clock
+import threading
 
 class ImageButton(ButtonBehavior, Image):
     def __init__(self, **kwargs):
@@ -30,3 +31,18 @@ class LongpressButton(Factory.Button):
         
     def on_long_press(self, *largs):
         pass
+
+
+class MyPausableThread(threading.Thread):
+
+    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
+        self._event = threading.Event()
+        if target:
+            args = ((lambda: self._event.wait()),) + args
+        super(MyPausableThread, self).__init__(group, target, name, args, kwargs)
+
+    def pause(self):
+        self._event.clear()
+
+    def resume(self):
+        self._event.set()

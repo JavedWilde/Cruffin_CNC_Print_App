@@ -1,10 +1,12 @@
 import time
-from kivy.app import App
+from kivymd.app import MDApp
 from kivy.lang import Builder
 from kivy.utils import platform
-from kivy.factory import Factory
-from kivy.clock import Clock, mainthread
+from kivy.clock import mainthread
 import threading
+from KivyCustom import MyPausableThread
+from kivy.core.text import LabelBase
+from kivy.uix.screenmanager import SlideTransition
 
 from serial import SerialException
 import Helpers
@@ -16,40 +18,10 @@ else:
     from serial.tools import list_ports
     from serial import Serial
 
-class LongpressButton(Factory.Button):
-    __events__ = ('on_long_press', )
-
-    long_press_time = Factory.NumericProperty(1)
-    
-    def on_state(self, instance, value):
-        if value == 'down':
-            lpt = self.long_press_time
-            self._clockev = Clock.schedule_once(self._do_long_press, lpt)
-        else:
-            self._clockev.cancel()
-
-    def _do_long_press(self, dt):
-        self.dispatch('on_long_press')
-        
-    def on_long_press(self, *largs):
-        pass
-
-class MyPausableThread(threading.Thread):
-
-    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
-        self._event = threading.Event()
-        if target:
-            args = ((lambda: self._event.wait()),) + args
-        super(MyPausableThread, self).__init__(group, target, name, args, kwargs)
-
-    def pause(self):
-        self._event.clear()
-
-    def resume(self):
-        self._event.set()
 
 
-class MainApp(App):
+
+class MainApp(MDApp):
     # BASE PROGRAM
     def __init__(self, *args, **kwargs):
         self.serial_port = None
@@ -58,12 +30,13 @@ class MainApp(App):
         self.read_thread = None
         self.status_thread = None
         self.machine_status = 'Alarm'
-        self.machine_connected = True
+        self.machine_connected = False
         self.canceling_print = False
         super(MainApp, self).__init__(*args, **kwargs)
     
     def build(self):
-        return Builder.load_file('custom_ui.kv')
+        LabelBase.register(name='Lexend-Medium', fn_regular='UiFonts/Lexend/Lexend-Medium.ttf')
+        return Builder.load_file('test_ui.kv')
 
     def on_stop(self):
         if self.serial_port:
@@ -132,45 +105,52 @@ class MainApp(App):
     
     def check_grbl_thread(self):
         print('checking for grbl')
-        self.uiDict['connectionlog'].text = 'checking for connection'
+        self.set_screen('connect')
+        self.set_connection_log('checking connection...')
         self.set_screen('connecting')
+        time.sleep(0.5)
         for i in range(0,1000):
             if self.machine_connected:
                 print('grbl detected')
-                self.uiDict['connectionlog'].text = 'connection detected'
+                self.set_connection_log('connection detected')
+                self.set_connection_indicator()
+                time.sleep(0.1)
                 threading.Thread(target=self.setup_machine_thread, daemon=True).start()
                 return
             time.sleep(0.01)
-        self.set_screen('connect')
         # handle no connection
 
     def setup_machine_thread(self):
         print('homing')
-        self.uiDict['connectionlog'].text = 'Homing......'
+        self.set_connection_log('Homing...')
         self.update_status('Home')
         self.home_machine()
         self.status_thread.start()
         self.status_thread.resume()
         while True:
             if self.machine_status == 'Idle':
-                self.uiDict['connectionlog'].text = 'Home Complete'
+                self.set_connection_log('Home Complete')
+                time.sleep(0.1)
                 print('home complete')
                 self.status_thread.pause()
                 break
         
         print('preparing')
-        self.uiDict['connectionlog'].text = 'Preparing........'
+        self.set_connection_log('Preparing...')
         self.set_origin()
         self.status_thread.resume()
         time.sleep(2)
         while True:
             if self.machine_status == 'Idle':
-                self.uiDict['connectionlog'].text = 'Prepare Complete'
+                self.set_connection_log('Prepare Complete')
+                time.sleep(0.1)
                 print('Prepare Complete')
+                self.disable_spinner()
                 self.status_thread.pause()
                 break
         print('ready')
-        self.uiDict['connectionlog'].text = 'Ready'
+        self.set_connection_log('Ready')
+        time.sleep(0.5)
         self.set_screen('main') 
 
     def printing_thread(self):
@@ -178,26 +158,30 @@ class MainApp(App):
         fontFile = f'Fonts/SVGFONT ({0}).svg' #change numbers for different fonts, 0 - 18
         gcode = Helpers.GetGcode(self.uiDict['nameinput'].text,fontFile,0,0,0.9,750,750,25,6)
         self.read_thread.pause()
+        self.status_thread.pause()
 
         lines = gcode.split('\n')
+        total_lines = len(lines)
         for i ,line in enumerate(lines):
             if self.canceling_print:
                 break
             l = line.strip() # Strip all EOL characters for consistency
-            print ('Sending: ' + l),
-            self.serial_port.write(bytes(line + '\n','utf8')) # Send g-code block to grbl
+            self.serial_port.write(bytes(l + '\n','utf8')) # Send g-code block to grbl
             grbl_out = bytes(self.serial_port.readline()).decode('utf8').strip() # Wait for grbl response with carriage return
-            print ("Response: " + grbl_out)
+            print(grbl_out)
+            self.update_progress_bar(int((i/total_lines) * 100))
+
 
         if self.canceling_print:
-            self.uiDict['printstatus'].text = 'Cancelling...............'
+            self.set_printing_log('Cancelling...')
+            self.set_cancel_button('Icons/please_wait.png')
             time.sleep(1)
             self.send_command('G0F1000Z1')
             time.sleep(1)
             self.send_command('G0F1000Y60')
             time.sleep(1)
         else:
-            self.uiDict['printstatus'].text = 'Print Complete, Unloading.........'
+            self.set_printing_log('Done, Unloading...')
         
         self.status_thread.resume()
         self.read_thread.resume()
@@ -205,7 +189,8 @@ class MainApp(App):
         while True:
             if self.machine_status == 'Idle':
                 self.canceling_print = False
-                self.set_screen('main')
+                self.set_cancel_button('Icons/cancel_button_up.png')
+                self.set_screen('main','right')
                 self.status_thread.pause()
                 break
 
@@ -218,11 +203,11 @@ class MainApp(App):
             self.update_status(msg.strip()[1:-1].split('|')[0])
         elif '$X' in msg.strip():
             print('activation msg :' + msg)
-            self.uiDict['output'].text += msg
+            self.uiDict['developeroutput'].text += msg
             self.machine_connected = True
         else:
             if msg.strip() != 'ok':
-                self.uiDict['output'].text += msg
+                #self.uiDict['output'].text += msg
                 print(msg)
         self.uiDict['developeroutput'].text += msg
 
@@ -234,12 +219,38 @@ class MainApp(App):
             )
         self.serial_port.write(data)
         if '?' not in command:
-            self.uiDict['output'].text += f'[Sent] {command}\n'
+            self.uiDict['developeroutput'].text += f'[Sent] {command}\n'
             print(f'[Sent] {command}\n')
       
     @mainthread
-    def set_screen(self,screenname):
+    def set_screen(self,screenname,direction='left'):
+        self.uiDict['sm'].transition = SlideTransition(direction=direction, duration=.25)
         self.uiDict['sm'].current = screenname
+
+    @mainthread
+    def set_connection_log(self,text):
+        self.uiDict['connectionlog'].text = text
+    
+    @mainthread
+    def disable_spinner(self):
+        self.uiDict['spinner'].active = False
+
+    @mainthread
+    def set_printing_log(self, text):
+        self.uiDict['printstatus'].text =  text
+    
+    @mainthread
+    def set_cancel_button(self, path):
+        self.uiDict['cancelbutton'].source = path
+    
+    @mainthread
+    def update_progress_bar(self,value):
+        self.uiDict['progress'].value = value
+    @mainthread
+    def set_connection_indicator(self):
+        self.uiDict['connectionstatus'].source = 'Icons/connected.png'
+
+
 
     # BUTTON ACTIONS
     def on_button_connect(self):
@@ -302,10 +313,15 @@ class MainApp(App):
         else:
             self.uiDict['connecterror'].text = 'Connection Error, make sure the right device is connected.'
             return
- 
-    def on_button_start(self):
+    
+    def on_button_print(self):
+        #self.printing_thread()
         threading.Thread(target=self.printing_thread, daemon=True).start()
         
+    def on_button_print_cancel(self):
+            if not self.canceling_print:
+                self.canceling_print = True
+
     def on_button_open_developer_screen(self):
         self.uiDict['sm'].current = 'developer'
 
@@ -313,9 +329,7 @@ class MainApp(App):
         self.send_command(self.uiDict['developerinput'].text)
         self.uiDict["developerinput"].text = ''
 
-    def on_button_print_cancel(self):
-        if not self.canceling_print:
-            self.canceling_print = True
+    
 
 if __name__ == '__main__':
     MainApp().run()

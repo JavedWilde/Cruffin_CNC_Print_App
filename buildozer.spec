@@ -37,7 +37,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,kivymd,pyserial,usb4a,usbserial4a,svgpathtools,svg-to-gcode, Kivy-Garden, pillow, numpy,svgwrite,pyjnius
+requirements = python3,kivy,kivymd,pyserial,usb4a,usbserial4a,svgpathtools,svg-to-gcode, Kivy-Garden, pillow, numpy,svgwrite,pyjnius,kivygradient
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -136,7 +136,7 @@ android.permissions = android.permission.INTERNET, (name=android.permission.WRIT
 # agreements. This is intended for automation only. If set to False,
 # the default, you will be shown the license when first running
 # buildozer.
-# android.accept_sdk_license = False
+android.accept_sdk_license = True
 
 # (str) Android entry point, default is ok for Kivy-based app
 #android.entrypoint = org.kivy.android.PythonActivity

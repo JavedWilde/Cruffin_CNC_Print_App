@@ -1,6 +1,5 @@
 #:import get_color_from_hex kivy.utils.get_color_from_hex
 #:import Gradient kivy_gradient.Gradient
-#:import GradientLabel kivy_gradient.Gradient
 BoxLayout:
     orientation: 'vertical'
     canvas.before:
@@ -22,15 +21,16 @@ BoxLayout:
             top : self.parent.top - dp(75)
             size_hint: None, None
             size: dp(75), dp(75)
+            on_parent: app.uiDict['connectionstatus'] = self
             LongpressButton:
                 name: 'none'
                 center_x : self.parent.center_x
                 center_y: self.parent.center_y
                 size: self.parent.size
                 background_color: 0,0,0,0
-                long_press_time : 10
+                long_press_time : 5
 
-                on_long_press : print('long')
+                on_long_press : app.on_button_open_developer_screen()
 
         BoxLayout:
             orientation: 'vertical'
@@ -42,6 +42,7 @@ BoxLayout:
             
             ScreenManager:
                 id: screenmanager
+                on_parent : app.uiDict['sm'] = self
                 Screen:
                     name : 'connect'
                     Image:
@@ -76,9 +77,17 @@ BoxLayout:
                     BoxLayout:
                         orientation: 'vertical'
                         Label:
-                            text: 'connect'
+                            text: 'Connecting'
                             font_name:'Lexend-Medium'
-                            font_size:dp(20)
+                            font_size:dp(25)
+                            on_parent : app.uiDict['connectionlog'] = self
+                            MDSpinner:
+                                color : get_color_from_hex('259678')
+                                size_hint: None, None
+                                size: dp(40), dp(40)
+                                center_x: self.parent.center_x
+                                center_y: self.parent.center_y - dp(75)
+                                on_parent: app.uiDict['spinner'] = self
 
                 Screen:
                     name:'main'
@@ -94,6 +103,7 @@ BoxLayout:
                         top: self.parent.top - dp(250)
                         size_hint: None,None
                         size: self.parent.width * 0.9,dp(100)
+                        on_parent: app.uiDict['nameinput'] = self
 
                         hint_text: 'Enter Message'
                         mode : 'fill'
@@ -106,6 +116,8 @@ BoxLayout:
                         hint_text_color_normal: get_color_from_hex('3E4147')
                         hint_text_color_focus: get_color_from_hex("259678")
                         fill_color_focus: get_color_from_hex('323234')
+                        text_color_normal: get_color_from_hex('BFBFBF')
+                        text_color_focus: get_color_from_hex('FFFFFF')
                         
                     
                     ImageButton:
@@ -160,3 +172,73 @@ BoxLayout:
                                 source: 'Icons/reset_button_up.png'
                                 size_hint_x: 0.5
 
+                Screen:
+                    name: 'printing'
+                    BoxLayout:
+                        orientation: 'vertical'
+                        Label:
+                            text: 'Printing'
+                            font_name:'Lexend-Medium'
+                            font_size:dp(25)
+
+                            on_parent: app.uiDict['printstatus'] = self
+
+                            MDProgressBar:
+                                value: 0
+                                orientation: 'horizontal'
+                                color : get_color_from_hex('259678')
+                                size_hint: None, None
+                                size: root.width *0.5, dp(4)
+                                center_x: self.parent.center_x
+                                center_y: self.parent.center_y - dp(75)
+
+                                back_color: get_color_from_hex('000000')
+                                on_parent: app.uiDict['progress'] = self
+
+                    ImageButton:
+                        on_press:
+
+                            if not app.canceling_print: self.source = 'Icons/cancel_button_down.png'
+                        on_release:
+                            app.on_button_print_cancel()
+                            if not app.canceling_print: self.source = 'Icons/cancel_button_up.png'
+
+                        source: 'Icons/cancel_button_up.png'
+                        center_x: self.parent.center_x
+                        center_y: dp(75)
+                        size_hint: None,None
+                        size: self.parent.width * 0.9,dp(100)
+                        on_parent: app.uiDict['cancelbutton'] = self
+
+                Screen:
+                    name: 'developer'
+                    BoxLayout:
+                        orientation:'vertical'
+                        TextInput:
+                            id:'developerinput'
+                            text:''
+                            size_hint_y: None
+                            height : '50dp'
+                            multiline: False
+                            on_parent: app.uiDict['developerinput'] = self
+                        GridLayout:
+                            cols: 4
+                            size_hint_y : None
+                            height : '100dp'
+                            Button:
+                                text:'Send'
+                                on_release : app.on_button_developer_send()
+                            Button:
+                                text:'Back'     
+                                on_release : app.uiDict['sm'].current = 'main'
+                            BoxLayout:
+                                orientation: 'vertical'
+                            BoxLayout:
+                                orientation: 'vertical'
+
+                        TextInput:
+                            id: 'developeroutput'
+                            text: ''
+                            readonly:True
+                            background_color: 0.5,0.5,0.5,1
+                            on_parent: app.uiDict['developeroutput'] = self
