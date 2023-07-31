@@ -155,10 +155,11 @@ class MainApp(MDApp):
 
     def printing_thread(self):
         self.set_screen('printing')
-        self.set_printing_log('Printing...')
+        self.set_printing_log('Generating Gcode...')
         self.update_progress_bar(0)
         fontFile = f'Fonts/SVGFONT ({0}).svg' #change numbers for different fonts, 0 - 18
         gcode = Helpers.GetGcode(self.uiDict['nameinput'].text,fontFile,0,0,0.9,750,750,25,6)
+        self.set_printing_log('Printing...')
         self.read_thread.pause()
         self.status_thread.pause()
 
