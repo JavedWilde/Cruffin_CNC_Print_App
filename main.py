@@ -9,7 +9,6 @@ from kivy.core.text import LabelBase
 from kivy.uix.screenmanager import SlideTransition
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
-from kivy.utils import get_color_from_hex 
 
 from serial import SerialException
 import Helpers
@@ -111,8 +110,7 @@ class MainApp(MDApp):
                     msg = bytes(received_msg).decode('utf8')
                     self.handle_message(msg)
             except Exception as e:
-                self.dialog_box.text = str(e)
-                self.dialog_box.open()
+                self.show_dialogue_box(str(e))
                 raise e
     
     def check_grbl_thread(self):
@@ -157,7 +155,6 @@ class MainApp(MDApp):
                 self.set_connection_log('Prepare Complete')
                 time.sleep(0.1)
                 print('Prepare Complete')
-                self.disable_spinner()
                 self.status_thread.pause()
                 break
         print('ready')
@@ -173,8 +170,7 @@ class MainApp(MDApp):
             fontFile = f'Fonts/SVGFONT ({0}).svg' #change numbers for different fonts, 0 - 18
             gcode = Helpers.GetGcode(self.uiDict['nameinput'].text,fontFile,5,8,0.9,750,750,25,6)
         except Exception as e:
-            self.dialog_box.text = str(e)
-            self.dialog_box.open()
+            self.show_dialogue_box(str(e))
             return
         
         self.set_printing_log('Printing...')
@@ -267,15 +263,17 @@ class MainApp(MDApp):
     def set_connection_indicator(self):
         self.uiDict['connectionstatus'].source = 'Icons/connected.png'
 
-
-
+    @mainthread
+    def show_dialogue_box(self, text):
+        self.dialog_box.title = 'Error'
+        self.dialog_box.text = text
+        self.dialog_box.open()   
+        
     # BUTTON ACTIONS
     def on_button_connect(self):
         if platform == 'android':
             if len(usb.get_usb_device_list())<1:
-                self.dialog_box.title = 'Error'
-                self.dialog_box.text = '\nNo device found, make sure the connections are fine. Try taking out the usb cable and putting it in again.'
-                self.dialog_box.open()
+                self.show_dialogue_box('\nNo device found, make sure the connections are fine. Try taking out the usb cable and putting it in again.')
                 return
             try: 
                 usb_device = usb.get_usb_device_list()[0]
@@ -296,14 +294,11 @@ class MainApp(MDApp):
                 )
                 
             except Exception as e:
-                self.dialog_box.text = str(e)
-                self.dialog_box.open()
+                self.show_dialogue_box (str(e))
                 return
         else:
             if len(list_ports.comports())<2:
-                self.dialog_box.title = 'Error'
-                self.dialog_box.text = '\nNo device found, make sure the connections are fine. Try taking out the usb cable and putting it in again.'
-                self.dialog_box.open()
+                self.show_dialogue_box('\nNo device found, make sure the connections are fine. Try taking out the usb cable and putting it in again.')
                 return
             comport = 1 if list_ports.comports()[0].device == 'COM1' else 0
             try:
@@ -318,8 +313,7 @@ class MainApp(MDApp):
                 )
                 
             except Exception as e:
-                self.dialog_box.text = str(e)
-                self.dialog_box.open()
+                self.show_dialogue_box(str(e))
                 return
             
         print(self.serial_port)
@@ -334,14 +328,12 @@ class MainApp(MDApp):
 
             threading.Thread(target=self.check_grbl_thread, daemon=True).start()
         else:
-            self.dialog_box.text = 'Connection Error, make sure the right device is connected.'
-            self.dialog_box.open()
+            self.show_dialogue_box('Connection Error, make sure the right device is connected.')
             return
     
     def on_button_print(self):
         if self.uiDict['nameinput'].isEmpty:
-            self.dialog_box.text = 'Name field cannot be empty. Please enter a name.'
-            self.dialog_box.open()
+            self.show_dialogue_box('Name field cannot be empty. Please enter a name.')
             return
         threading.Thread(target=self.printing_thread, daemon=True).start()
         
