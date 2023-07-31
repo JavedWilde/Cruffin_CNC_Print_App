@@ -40,11 +40,6 @@ class MainApp(MDApp):
     
     def build(self):
         LabelBase.register(name='Lexend-Medium', fn_regular='UiFonts/Lexend/Lexend-Medium.ttf')
-        self.dialog_box = MDDialog(buttons = [MDFlatButton(
-                text="Close",
-                theme_text_color="Custom",
-                text_color=[0,0,0,1], on_release = lambda *args: self.dialog_box.dismiss()
-            )])
         
         return Builder.load_file('main_ui.kv')
 
@@ -155,6 +150,7 @@ class MainApp(MDApp):
                 self.set_connection_log('Prepare Complete')
                 time.sleep(0.1)
                 print('Prepare Complete')
+                self.disable_spinner()
                 self.status_thread.pause()
                 break
         print('ready')
@@ -253,6 +249,10 @@ class MainApp(MDApp):
         self.uiDict['printstatus'].text =  text
     
     @mainthread
+    def disable_spinner(self):
+        self.uiDict['spinner'].active = False
+
+    @mainthread
     def set_cancel_button(self, path):
         self.uiDict['cancelbutton'].source = path
     
@@ -265,6 +265,12 @@ class MainApp(MDApp):
 
     @mainthread
     def show_dialogue_box(self, text):
+        if not self.dialog_box:
+            self.dialog_box = MDDialog(buttons = [MDFlatButton(
+                text="Close",
+                theme_text_color="Custom",
+                text_color=[0,0,0,1], on_release = lambda *args: self.dialog_box.dismiss()
+            )])
         self.dialog_box.title = 'Error'
         self.dialog_box.text = text
         self.dialog_box.open()   
@@ -332,7 +338,7 @@ class MainApp(MDApp):
             return
     
     def on_button_print(self):
-        if self.uiDict['nameinput'].isEmpty:
+        if not self.uiDict['nameinput'].text:
             self.show_dialogue_box('Name field cannot be empty. Please enter a name.')
             return
         threading.Thread(target=self.printing_thread, daemon=True).start()
