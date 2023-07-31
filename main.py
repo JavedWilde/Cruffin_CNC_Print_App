@@ -7,6 +7,9 @@ import threading
 from KivyCustom import MyPausableThread
 from kivy.core.text import LabelBase
 from kivy.uix.screenmanager import SlideTransition
+from kivymd.uix.dialog import MDDialog
+from kivymd.uix.button import MDFlatButton
+from kivy.utils import get_color_from_hex 
 
 from serial import SerialException
 import Helpers
@@ -32,11 +35,19 @@ class MainApp(MDApp):
         self.machine_status = 'Alarm'
         self.machine_connected = False
         self.canceling_print = False
+
+        self.dialog_box = None
         super(MainApp, self).__init__(*args, **kwargs)
     
     def build(self):
         LabelBase.register(name='Lexend-Medium', fn_regular='UiFonts/Lexend/Lexend-Medium.ttf')
-        return Builder.load_file('test_ui.kv')
+        self.dialog_box = MDDialog(buttons = [MDFlatButton(
+                text="Close",
+                theme_text_color="Custom",
+                text_color=[0,0,0,1], on_release = lambda *args: self.dialog_box.dismiss()
+            )])
+        
+        return Builder.load_file('main_ui.kv')
 
     def on_stop(self):
         if self.serial_port:
@@ -100,7 +111,8 @@ class MainApp(MDApp):
                     msg = bytes(received_msg).decode('utf8')
                     self.handle_message(msg)
             except Exception as e:
-                self.handle_message(str(e))
+                self.dialog_box.text = str(e)
+                self.dialog_box.open()
                 raise e
     
     def check_grbl_thread(self):
@@ -157,8 +169,14 @@ class MainApp(MDApp):
         self.set_screen('printing')
         self.set_printing_log('Generating Gcode...')
         self.update_progress_bar(0)
-        fontFile = f'Fonts/SVGFONT ({0}).svg' #change numbers for different fonts, 0 - 18
-        gcode = Helpers.GetGcode(self.uiDict['nameinput'].text,fontFile,0,0,0.9,750,750,25,6)
+        try:
+            fontFile = f'Fonts/SVGFONT ({0}).svg' #change numbers for different fonts, 0 - 18
+            gcode = Helpers.GetGcode(self.uiDict['nameinput'].text,fontFile,0,0,0.9,750,750,25,6)
+        except Exception as e:
+            self.dialog_box.text = str(e)
+            self.dialog_box.open()
+            return
+        
         self.set_printing_log('Printing...')
         self.read_thread.pause()
         self.status_thread.pause()
@@ -235,10 +253,6 @@ class MainApp(MDApp):
         self.uiDict['connectionlog'].text = text
     
     @mainthread
-    def disable_spinner(self):
-        self.uiDict['spinner'].active = False
-
-    @mainthread
     def set_printing_log(self, text):
         self.uiDict['printstatus'].text =  text
     
@@ -259,7 +273,9 @@ class MainApp(MDApp):
     def on_button_connect(self):
         if platform == 'android':
             if len(usb.get_usb_device_list())<1:
-                self.uiDict['connecterror'].text = 'No device found, make sure the connections are fine.'
+                self.dialog_box.title = 'Error'
+                self.dialog_box.text = '\nNo device found, make sure the connections are fine. Try taking out the usb cable and putting it in again.'
+                self.dialog_box.open()
                 return
             try: 
                 usb_device = usb.get_usb_device_list()[0]
@@ -280,11 +296,14 @@ class MainApp(MDApp):
                 )
                 
             except Exception as e:
-                self.uiDict['connecterror'].text += str(e)
+                self.dialog_box.text = str(e)
+                self.dialog_box.open()
                 return
         else:
             if len(list_ports.comports())<2:
-                self.uiDict['connecterror'].text = 'No device found, make sure the connections are fine.'
+                self.dialog_box.title = 'Error'
+                self.dialog_box.text = '\nNo device found, make sure the connections are fine. Try taking out the usb cable and putting it in again.'
+                self.dialog_box.open()
                 return
             comport = 1 if list_ports.comports()[0].device == 'COM1' else 0
             try:
@@ -299,7 +318,8 @@ class MainApp(MDApp):
                 )
                 
             except Exception as e:
-                self.uiDict['connecterror'].text = str(e)
+                self.dialog_box.text = str(e)
+                self.dialog_box.open()
                 return
             
         print(self.serial_port)
@@ -314,11 +334,15 @@ class MainApp(MDApp):
 
             threading.Thread(target=self.check_grbl_thread, daemon=True).start()
         else:
-            self.uiDict['connecterror'].text = 'Connection Error, make sure the right device is connected.'
+            self.dialog_box.text = 'Connection Error, make sure the right device is connected.'
+            self.dialog_box.open()
             return
     
     def on_button_print(self):
-        #self.printing_thread()
+        if self.uiDict['nameinput'].isEmpty:
+            self.dialog_box.text = 'Name field cannot be empty. Please enter a name.'
+            self.dialog_box.open()
+            return
         threading.Thread(target=self.printing_thread, daemon=True).start()
         
     def on_button_print_cancel(self):
