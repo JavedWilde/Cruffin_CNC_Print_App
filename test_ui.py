@@ -2,7 +2,7 @@ import time
 from kivymd.app import MDApp
 from kivy.lang import Builder
 from kivy.core.window import Window
-from KivyCustom import ImageButton, LongpressButton
+from Helpers import ImageButton, LongpressButton
 from kivy.uix.screenmanager import SlideTransition
 from kivy.core.text import LabelBase
 

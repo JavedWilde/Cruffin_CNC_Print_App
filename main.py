@@ -4,7 +4,7 @@ from kivy.lang import Builder
 from kivy.utils import platform
 from kivy.clock import mainthread
 import threading
-from KivyCustom import MyPausableThread
+from Helpers import MyPausableThread
 from kivy.core.text import LabelBase
 from kivy.uix.screenmanager import SlideTransition
 from kivymd.uix.dialog import MDDialog
@@ -171,7 +171,7 @@ class MainApp(MDApp):
         self.update_progress_bar(0)
         try:
             fontFile = f'Fonts/SVGFONT ({0}).svg' #change numbers for different fonts, 0 - 18
-            gcode = Helpers.GetGcode(self.uiDict['nameinput'].text,fontFile,0,0,0.9,750,750,25,6)
+            gcode = Helpers.GetGcode(self.uiDict['nameinput'].text,fontFile,5,8,0.9,750,750,25,6)
         except Exception as e:
             self.dialog_box.text = str(e)
             self.dialog_box.open()
