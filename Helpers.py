@@ -71,6 +71,23 @@ def GetGlyphDictionary(filepath):
         dict[glyph.attrib['unicode']] = [d,horiz_adv_x]
     return dict
 
+def word_wrapper(text, limit):
+    words = text.split()
+    lines = []
+    current_line = ""
+
+    for word in words:
+        if len(current_line) + len(word) <= limit:
+            current_line += word + " "
+        else:
+            lines.append(current_line.strip())
+            current_line = word + " "
+
+    if current_line:
+        lines.append(current_line.strip())
+
+    return "\n".join(lines)
+
 def GenerateGcode(move_speed, cut_speed, svg):
     gcode_compiler = Compiler(
         interfaces.Gcode,
@@ -302,18 +319,53 @@ def GetMultiLine(text, fontDict):
 
     return paths
 
-def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, letterLimit, arThres):
+def GetPaths(full_text, fontDict):
+    space_space = 400
+    text_list = word_wrapper(full_text,10).split('\n')
+    paths = []
+    line_extremes = [[0,0] for _ in text_list] #empty list of line extremes
+
+    pointer = [0,0]
+
+    # Calculate extreme
+    for line_index in reversed(range(0,len(text_list))):
+        print(line_index)
+        for char in text_list[line_index]:
+            if char == ' ':
+                pointer[0] += space_space
+                continue
+
+            d = parse_path(fontDict[char][0]).translated(complex(pointer[0],pointer[1]))
+            pointer[0] = d.bbox()[1]
+            if d.bbox()[1] > line_extremes[line_index][0]: line_extremes[line_index][0] = d.bbox()[1]
+            if d.bbox()[3] > line_extremes[line_index][1]: line_extremes[line_index][1] = d.bbox()[3]
+        pointer = [0,line_extremes[line_index][1] + space_space]
+
+    # actually spawning the words
+    for line_index in reversed(range(0,len(text_list))):
+        pointer = [(line_extremes[line_index][0]/2)]
+
+
+
+def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, letterLimit, arThres, border):
     
     bed_sizes = {
         'small' : [70,25],
         'large' : [70,45]
     }
+    active_bed_size = bed_sizes['large']
+
     fontDict = GetGlyphDictionary(fontFile)
 
     if len(text)>letterLimit:
         print('Thats wat she said')
         return False
 
+
+    final_paths = GetPaths(text, fontDict)
+
+    # Old Method
+    '''
     #single line attempt
     final_paths = GetSingleLine(text, fontDict)
 
@@ -324,7 +376,9 @@ def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, let
         final_paths = GetMultiLine(text, fontDict)
     
     print(active_bed_size)
+    '''
 
+    return 'done'
     gcode = GenerateGcode(move_speed, cut_speed, GetSvg(final_paths))
     gcode, bbox = GcodeScale(gcode,1,-1)
     gcode, bbox = GcodeMove(gcode,(bbox[0] * -1) + 1,(bbox[2] * -1) + 1)
@@ -336,24 +390,24 @@ def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, let
     y_center_move = (active_bed_size[1] - bbox[3])/2
     gcode, bbox = GcodeMove(gcode,xOffset + x_center_move, yOffset + y_center_move)
 
+    if border:
+    # Add Border
+        gcode += f'''
+            G1 F{move_speed} X{xOffset + 0} Y{yOffset + 0};\n
+
+            G0 F1000 Z-2;\n
+
+            G1 F{cut_speed} X{xOffset + 0} Y{yOffset+active_bed_size[1]};\n
+            G1 X{xOffset + active_bed_size[0]} Y{yOffset + active_bed_size[1]};\n
+            G1 X{ xOffset + active_bed_size[0]} Y{yOffset + 0};\n
+            G1 X{xOffset + 0} Y{yOffset + 0};\n
+
+            G0 F1000 Z2;\n
+            '''
+    
     gcode += 'G0 F1000 Z2;\n'
-#     # Add Border
-#     gcode += f'''
 
-# G1 F{move_speed} X0 Y0;\n
-
-# G0 F1000 Z-1;\n
-
-# G1 F{cut_speed} X0 Y{active_bed_size[1]};\n
-# G1 X{active_bed_size[0]} Y{active_bed_size[1]};\n
-# G1 X{active_bed_size[0]} Y0;\n
-# G1 X0 Y0;\n
-
-# G0 F1000 Z1;\n
-#     '''
-    #gcode, bbox = GcodeMove(gcode,5, 8)
-
-    gcode += f"\nG1 F{move_speed} X10 Y60;\n"
+    gcode += f"\nG1 F{move_speed} X10 Y80;\n"
 
     temp_gcode = gcode.split("\n")
     gcode = ""
