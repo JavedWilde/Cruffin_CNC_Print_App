@@ -1,0 +1,19 @@
+ZnikoSLSVGinOT-8 - 0
+EMS Allure - 1
+EMS Elfin - 2
+EMS Felix - 3
+EMS Nixish - 4
+EMS Nixish Italic - 5
+EMS Osmotron - 6
+EMS Readiblity - 7
+EMS Readability Italic - 8
+EMS Tech - 9
+Hershey Gothic English - 10
+Hershey Sans 1-stroke - 11
+Hershey Sans medium - 12
+Hershey Script 1-stroke - 13
+Hershey Script medium - 14
+Hershey Serif bold - 15
+Hershey Serif bold italic - 16
+Hershey Serif medium - 17
+Hershey Serif medium italic - 18

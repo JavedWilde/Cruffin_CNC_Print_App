@@ -1,0 +1,22 @@
+add debug connect option
+ie, hold debug button, send connect command, ignore home, use console
+
+one stroke font file - int
+two stroke font file - int
+
+x offset - float
+y offset - float
+
+scale - float
+letter limit - int
+wordwrap limit - int
+
+start status thread - command
+stop status thread - command
+
+move speed - int
+cut speed - int
+
+print usb device list - command
+
+show developer options - command

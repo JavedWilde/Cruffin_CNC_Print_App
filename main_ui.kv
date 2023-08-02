@@ -107,6 +107,7 @@ BoxLayout:
                         size_hint: None,None
                         size: self.parent.width * 0.9,dp(100)
                         on_parent: app.uiDict['nameinput'] = self
+                        text:''
 
                         hint_text: 'Enter Message'
                         mode : 'fill'
@@ -122,7 +123,75 @@ BoxLayout:
                         text_color_normal: get_color_from_hex('BFBFBF')
                         text_color_focus: get_color_from_hex('FFFFFF')
                         
-                    
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        size_hint: None, None
+                        size: self.parent.width * 0.75, dp(10)
+                        center_x : self.parent.center_x
+                        top : self.parent.top - dp(500)
+                        AnchorLayout:
+                            anchor_x: 'left'
+                            anchor_y: 'center'
+                            Label:
+                                text: 'Use two strokes (longer print)'
+                                font_name:'Lexend-Medium'
+                                font_size:dp(15)
+                                #pos_hint: {'center_x': 1,'center_y': 0.5}
+                        AnchorLayout:
+                            anchor_x:'right'
+                            anchor_y:'center'
+                            size_hint: None, None
+                            width : dp(5)
+                            height: dp(5)
+                            MDSwitch:
+                                pos_hint: {'center_x': 0.5,'center_y': 0.5}
+                                thumb_color_active: get_color_from_hex("259678")
+                                track_color_active: get_color_from_hex("105B47")
+
+                                icon_active: "check"
+                                icon_active_color: "white"
+                                 
+
+                                icon_inactive: "close"
+                                icon_inactive_color: "grey"
+
+                                on_parent: app.uiDict['stroke'] = self
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        size_hint: None, None
+                        size: self.parent.width * 0.75, dp(10)
+                        center_x : self.parent.center_x
+                        top : self.parent.top - dp(550)
+                        AnchorLayout:
+                            anchor_x: 'left'
+                            anchor_y: 'center'
+                            Label:
+                                text: 'Freeze app on print'
+                                font_name:'Lexend-Medium'
+                                font_size:dp(15)
+                                #pos_hint: {'center_x': 1,'center_y': 0.5}
+                        AnchorLayout:
+                            anchor_x:'right'
+                            anchor_y:'center'
+                            size_hint: None, None
+                            width : dp(5)
+                            height: dp(5)
+                            MDSwitch:
+                                pos_hint: {'center_x': 0.5,'center_y': 0.5}
+                                thumb_color_active: get_color_from_hex("259678")
+                                track_color_active: get_color_from_hex("105B47")
+
+                                icon_active: "check"
+                                icon_active_color: "white"
+                                 
+
+                                icon_inactive: "close"
+                                icon_inactive_color: "grey"
+
+                                on_parent: app.uiDict['freeze'] = self
+                                
+
+                            
                     ImageButton:
 
                         on_press: 

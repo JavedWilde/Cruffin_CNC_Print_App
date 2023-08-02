@@ -324,12 +324,11 @@ def GetPaths(full_text, fontDict):
     text_list = word_wrapper(full_text,10).split('\n')
     paths = []
     line_extremes = [[0,0] for _ in text_list] #empty list of line extremes
-
+    x_extreme_index = 0
     pointer = [0,0]
 
-    # Calculate extreme
+    # Calculate extreme x and y for each line
     for line_index in reversed(range(0,len(text_list))):
-        print(line_index)
         for char in text_list[line_index]:
             if char == ' ':
                 pointer[0] += space_space
@@ -337,13 +336,29 @@ def GetPaths(full_text, fontDict):
 
             d = parse_path(fontDict[char][0]).translated(complex(pointer[0],pointer[1]))
             pointer[0] = d.bbox()[1]
-            if d.bbox()[1] > line_extremes[line_index][0]: line_extremes[line_index][0] = d.bbox()[1]
-            if d.bbox()[3] > line_extremes[line_index][1]: line_extremes[line_index][1] = d.bbox()[3]
+            if d.bbox()[1] > line_extremes[line_index][0]: 
+                line_extremes[line_index][0] = d.bbox()[1]
+                if d.bbox()[1] > line_extremes[x_extreme_index][0]:
+                    x_extreme_index = line_index
+            if d.bbox()[3] > line_extremes[line_index][1]: 
+                line_extremes[line_index][1] = d.bbox()[3]
         pointer = [0,line_extremes[line_index][1] + space_space]
 
+
     # actually spawning the words
+    previous_line_extreme_y = 0
     for line_index in reversed(range(0,len(text_list))):
-        pointer = [(line_extremes[line_index][0]/2)]
+        pointer = [(line_extremes[x_extreme_index][0]-line_extremes[line_index][0])/2,previous_line_extreme_y]
+        for char in text_list[line_index]:
+            if char == ' ':
+                pointer[0] += space_space
+                continue
+            d = parse_path(fontDict[char][0]).translated(complex(pointer[0],pointer[1]))
+            pointer[0] = d.bbox()[1]
+            paths.append(d)
+        previous_line_extreme_y = line_extremes[line_index][1] + space_space
+    
+    return paths
 
 
 
@@ -365,20 +380,19 @@ def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, let
     final_paths = GetPaths(text, fontDict)
 
     # Old Method
-    '''
+
     #single line attempt
-    final_paths = GetSingleLine(text, fontDict)
+    # final_paths = GetSingleLine(text, fontDict)
 
-    active_bed_size = bed_sizes['small']
+    # active_bed_size = bed_sizes['small']
 
-    if CheckAr(final_paths) > arThres and len(text.split(' ')) > 1:
-        active_bed_size = bed_sizes['large']
-        final_paths = GetMultiLine(text, fontDict)
+    # if CheckAr(final_paths) > arThres and len(text.split(' ')) > 1:
+    #     active_bed_size = bed_sizes['large']
+    #     final_paths = GetMultiLine(text, fontDict)
     
-    print(active_bed_size)
-    '''
+    # print(active_bed_size)
 
-    return 'done'
+
     gcode = GenerateGcode(move_speed, cut_speed, GetSvg(final_paths))
     gcode, bbox = GcodeScale(gcode,1,-1)
     gcode, bbox = GcodeMove(gcode,(bbox[0] * -1) + 1,(bbox[2] * -1) + 1)
@@ -393,21 +407,17 @@ def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, let
     if border:
     # Add Border
         gcode += f'''
-            G1 F{move_speed} X{xOffset + 0} Y{yOffset + 0};\n
-
-            G0 F1000 Z-2;\n
-
-            G1 F{cut_speed} X{xOffset + 0} Y{yOffset+active_bed_size[1]};\n
-            G1 X{xOffset + active_bed_size[0]} Y{yOffset + active_bed_size[1]};\n
-            G1 X{ xOffset + active_bed_size[0]} Y{yOffset + 0};\n
-            G1 X{xOffset + 0} Y{yOffset + 0};\n
-
-            G0 F1000 Z2;\n
-            '''
+G1 F{move_speed} X{xOffset + 0} Y{yOffset + 0};
+G0 F1000 Z-1;
+G1 F{cut_speed} X{xOffset + 0} Y{yOffset+active_bed_size[1]};
+G1 X{xOffset + active_bed_size[0]} Y{yOffset + active_bed_size[1]};
+G1 X{ xOffset + active_bed_size[0]} Y{yOffset + 0};
+G1 X{xOffset + 0} Y{yOffset + 0};
+G0 F1000 Z1;\n'''
     
-    gcode += 'G0 F1000 Z2;\n'
+    gcode += 'G0 F1000 Z1;\n'
 
-    gcode += f"\nG1 F{move_speed} X10 Y80;\n"
+    gcode += f"\nG1 F{move_speed} X10 Y90;\n"
 
     temp_gcode = gcode.split("\n")
     gcode = ""
@@ -419,12 +429,12 @@ def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, let
             continue
 
         if line.startswith("M3 S255"):
-            gcode += "G0 F1000 Z-2;\n"
+            gcode += "G0 F1000 Z-1;\n"
             if idx + 1 < len(temp_gcode) and "F" not in temp_gcode[idx + 1] and (temp_gcode[idx + 1].startswith("G0") or temp_gcode[idx + 1].startswith("G1")):
                 gcode += temp_gcode[idx + 1].replace("G0", "G0 F" + str(cut_speed)).replace("G1", "G1 F" + str(cut_speed)) + "\n"
                 isSkip = True
         elif line.startswith("M5"):
-            gcode += "G0 F1000 Z2;\n"
+            gcode += "G0 F1000 Z1;\n"
             if idx + 1 < len(temp_gcode) and "F" not in temp_gcode[idx + 1] and (temp_gcode[idx + 1].startswith("G0") or temp_gcode[idx + 1].startswith("G1")):
                 gcode += temp_gcode[idx + 1].replace("G0", "G0 F" + str(move_speed)).replace("G1", "G1 F" + str(move_speed)) + "\n"
                 isSkip = True

@@ -9,6 +9,10 @@ from kivy.core.text import LabelBase
 from kivy.uix.screenmanager import SlideTransition
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
+from kivymd.uix.snackbar import MDSnackbar
+from kivymd.uix.label import MDLabel
+from kivymd.uix.snackbar import MDSnackbarActionButton
+from kivy.metrics import dp
 
 from serial import SerialException
 import Helpers
@@ -19,9 +23,6 @@ if platform == 'android':
 else:
     from serial.tools import list_ports
     from serial import Serial
-
-
-
 
 class MainApp(MDApp):
     # BASE PROGRAM
@@ -40,7 +41,6 @@ class MainApp(MDApp):
     
     def build(self):
         LabelBase.register(name='Lexend-Medium', fn_regular='UiFonts/Lexend/Lexend-Medium.ttf')
-        
         return Builder.load_file('main_ui.kv')
 
     def on_stop(self):
@@ -64,7 +64,7 @@ class MainApp(MDApp):
         time.sleep(1)
         self.send_command('G10 P0 L20 X0 Y0 Z1')
         time.sleep(1)
-        self.send_command('G0F1000Y60')
+        self.send_command('G0F1000Y90')
         time.sleep(1)
 
     def update_status(self, status):
@@ -114,7 +114,8 @@ class MainApp(MDApp):
         self.set_connection_log('checking connection...')
         self.set_screen('connecting')
         time.sleep(0.5)
-        for i in range(0,1000):
+        i = 0
+        for i in range(0,500):
             if self.machine_connected:
                 print('grbl detected')
                 self.set_connection_log('connection detected')
@@ -123,7 +124,10 @@ class MainApp(MDApp):
                 threading.Thread(target=self.setup_machine_thread, daemon=True).start()
                 return
             time.sleep(0.01)
+
         # handle no connection
+        self.show_dialogue_box('Connection not established, port is already in use.\nTake out the usb cable of the phone and plug in again.')
+        self.set_screen('connect','right')
 
     def setup_machine_thread(self):
         print('homing')
@@ -158,18 +162,23 @@ class MainApp(MDApp):
         time.sleep(0.5)
         self.set_screen('main') 
 
-    def printing_thread(self):
-        self.set_screen('printing')
-        self.set_printing_log('Generating Gcode...')
-        self.update_progress_bar(0)
+    def printing_thread(self, frozen = False):
+        start = time.time()
+        if not frozen:
+            self.set_screen('printing')
+            self.set_printing_log('Generating Gcode...')
+            self.update_progress_bar(100)
         try:
-            fontFile = f'Fonts/SVGFONT ({0}).svg' #change numbers for different fonts, 0 - 18
-            gcode = Helpers.GetGcode(self.uiDict['nameinput'].text,fontFile,5,8,0.9,750,750,25,6)
+            stroke = 0 if self.uiDict['stroke'].active else 4
+            fontFile = f'Fonts/SVGFONT ({stroke}).svg' #change numbers for different fonts, 0 - 18
+            gcode = Helpers.GetGcode(self.uiDict['nameinput'].text,fontFile,5,8,0.9,750,750,25,6,False)
         except Exception as e:
             self.show_dialogue_box(str(e))
+            if not frozen:
+                self.set_screen('main')
             return
-        
-        self.set_printing_log('Printing...')
+        if not frozen:
+            self.set_printing_log('Printing...')
         self.read_thread.pause()
         self.status_thread.pause()
 
@@ -182,7 +191,7 @@ class MainApp(MDApp):
             self.serial_port.write(bytes(l + '\n','utf8')) # Send g-code block to grbl
             grbl_out = bytes(self.serial_port.readline()).decode('utf8').strip() # Wait for grbl response with carriage return
             print(grbl_out)
-            self.update_progress_bar(int((i/total_lines) * 100))
+            #self.update_progress_bar(int((i/total_lines) * 100))
 
 
         if self.canceling_print:
@@ -191,25 +200,34 @@ class MainApp(MDApp):
             time.sleep(1)
             self.send_command('G0F1000Z1')
             time.sleep(1)
-            self.send_command('G0F1000Y60')
+            self.send_command('G0F1000Y90')
             time.sleep(1)
         else:
-            self.set_printing_log('Done, Unloading...')
+            if not frozen:
+                self.set_printing_log(f'Done, Unloading...')
         
         self.status_thread.resume()
         self.read_thread.resume()
         time.sleep(2)
-        while True:
-            if self.machine_status == 'Idle':
-                self.canceling_print = False
-                self.set_cancel_button('Icons/cancel_button_up.png')
-                self.set_screen('main','right')
-                self.status_thread.pause()
-                break
+        if not frozen:
+            while True:
+                if self.machine_status == 'Idle':
+                    self.canceling_print = False
+                    self.set_cancel_button('Icons/cancel_button_up.png')
+                    self.clear_name_input_field()
+                    self.set_screen('main','right')
+                    self.show_dialogue_box(f'Last print took:\n{time.time()-start:.2f} seconds','Info')
+                    self.status_thread.pause()
+                    break
+        self.status_thread.pause()
 
     
 
-    # Main Thread Transfer Functions    
+    # Main Thread Transfer Functions   
+    @mainthread
+    def clear_name_input_field(self):
+        self.uiDict['nameinput'].text = ''
+
     @mainthread
     def handle_message(self,msg):
         if msg.strip().startswith('<'):
@@ -218,11 +236,9 @@ class MainApp(MDApp):
             print('activation msg :' + msg)
             self.uiDict['developeroutput'].text += msg
             self.machine_connected = True
-        else:
-            if msg.strip() != 'ok':
-                #self.uiDict['output'].text += msg
-                print(msg)
-        self.uiDict['developeroutput'].text += msg
+        if msg.strip() != 'ok':
+            print(msg)
+            self.uiDict['developeroutput'].text += msg
 
     @mainthread
     def send_command(self, command):
@@ -263,15 +279,16 @@ class MainApp(MDApp):
     def set_connection_indicator(self):
         self.uiDict['connectionstatus'].source = 'Icons/connected.png'
 
+    
     @mainthread
-    def show_dialogue_box(self, text):
+    def show_dialogue_box(self, text, header = 'Error'):
         if not self.dialog_box:
             self.dialog_box = MDDialog(buttons = [MDFlatButton(
                 text="Close",
                 theme_text_color="Custom",
                 text_color=[0,0,0,1], on_release = lambda *args: self.dialog_box.dismiss()
             )])
-        self.dialog_box.title = 'Error'
+        self.dialog_box.title = header
         self.dialog_box.text = text
         self.dialog_box.open()   
         
@@ -303,7 +320,7 @@ class MainApp(MDApp):
                 self.show_dialogue_box (str(e))
                 return
         else:
-            if len(list_ports.comports())<2:
+            if len(list_ports.comports())<1:
                 self.show_dialogue_box('\nNo device found, make sure the connections are fine. Try taking out the usb cable and putting it in again.')
                 return
             comport = 1 if list_ports.comports()[0].device == 'COM1' else 0
@@ -341,7 +358,17 @@ class MainApp(MDApp):
         if not self.uiDict['nameinput'].text:
             self.show_dialogue_box('Name field cannot be empty. Please enter a name.')
             return
-        threading.Thread(target=self.printing_thread, daemon=True).start()
+        if self.uiDict['freeze'].active:
+            start = time.time()
+            self.printing_thread(True)
+            self.show_dialogue_box(f'Last print took:\n{time.time()-start:.2f} seconds','Info')
+            self.clear_name_input_field()
+        else:
+            threading.Thread(target=self.printing_thread, daemon=True).start()
+
+    def on_button_reset(self):
+        self.show_dialogue_box('Please close the app, disconnect the usb cable from the phone and reconnect it, thats the best way to reset for now :)', 'Info')
+
         
     def on_button_print_cancel(self):
             if not self.canceling_print:

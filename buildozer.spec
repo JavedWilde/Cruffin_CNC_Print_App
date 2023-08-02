@@ -1,19 +1,19 @@
 [app]
 
 # (str) Title of your application
-title = My Application
+title = Cruffin Writer
 
 # (str) Package name
-package.name = myapp
+package.name = cruffinwriter
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.test
+package.domain = in.cruffin
 
 # (str) Source code where the main.py live
 source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas,svg
+source.include_exts = py,png,jpg,kv,atlas,svg,ttf
 
 # (list) List of inclusions using pattern matching
 #source.include_patterns = assets/*,images/*.png
@@ -37,17 +37,17 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,kivymd,pyserial,usb4a,usbserial4a,svgpathtools,svg-to-gcode, Kivy-Garden, pillow, numpy,svgwrite,pyjnius,kivygradient
+requirements = python3, kivy==master, https://github.com/kivymd/KivyMD/archive/master.zip ,pyserial ,usb4a,usbserial4a,svgpathtools,svg-to-gcode, Kivy-Garden, pillow, numpy,svgwrite,pyjnius,kivygradient
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
 # requirements.source.kivy = ../../kivy
 
 # (str) Presplash of the application
-presplash.filename = %(source.dir)s/data/presplash.png
+presplash.filename = %(source.dir)s/Icons/splash.png
 
 # (str) Icon of the application
-#icon.filename = %(source.dir)s/data/icon.png
+icon.filename = %(source.dir)s/Icons/icon.png
 
 # (list) Supported orientations
 # Valid options are: landscape, portrait, portrait-reverse or landscape-reverse
@@ -67,7 +67,7 @@ orientation = portrait
 osx.python_version = 3
 
 # Kivy version to use
-osx.kivy_version = 1.9.1
+#osx.kivy_version = 2.1.0
 
 #
 # Android specific
@@ -136,7 +136,7 @@ android.permissions = android.permission.INTERNET, (name=android.permission.WRIT
 # agreements. This is intended for automation only. If set to False,
 # the default, you will be shown the license when first running
 # buildozer.
-android.accept_sdk_license = True
+android.accept_sdk_license = False
 
 # (str) Android entry point, default is ok for Kivy-based app
 #android.entrypoint = org.kivy.android.PythonActivity
@@ -161,6 +161,7 @@ android.accept_sdk_license = True
 # android.apptheme = "@android:style/Theme.NoTitleBar"
 
 # (list) Pattern to whitelist for the whole project
+#android.whitelist =
 android.whitelist = lib-dynload/termios.so
 
 # (str) Path to a custom whitelist file
@@ -237,12 +238,11 @@ android.whitelist = lib-dynload/termios.so
 
 # (str) XML file to include as an intent filters in <activity> tag
 #android.manifest.intent_filters =
+android.manifest.intent_filters = intent-filter.xml
 
 # (list) Copy these files to src/main/res/xml/ (used for example with intent-filters)
+#android.res_xml = PATH_TO_FILE,
 android.res_xml = device_filter.xml
-
-# (str) XML file to include as an intent filters in <activity> tag
-android.manifest.intent_filters = intent-filter.xml
 
 # (str) launchMode to set for the main activity
 #android.manifest.launch_mode = standard
