@@ -156,40 +156,6 @@ BoxLayout:
                                 icon_inactive_color: "grey"
 
                                 on_parent: app.uiDict['stroke'] = self
-                    BoxLayout:
-                        orientation: 'horizontal'
-                        size_hint: None, None
-                        size: self.parent.width * 0.75, dp(10)
-                        center_x : self.parent.center_x
-                        top : self.parent.top - dp(550)
-                        AnchorLayout:
-                            anchor_x: 'left'
-                            anchor_y: 'center'
-                            Label:
-                                text: 'Freeze app on print'
-                                font_name:'Lexend-Medium'
-                                font_size:dp(15)
-                                #pos_hint: {'center_x': 1,'center_y': 0.5}
-                        AnchorLayout:
-                            anchor_x:'right'
-                            anchor_y:'center'
-                            size_hint: None, None
-                            width : dp(5)
-                            height: dp(5)
-                            MDSwitch:
-                                pos_hint: {'center_x': 0.5,'center_y': 0.5}
-                                thumb_color_active: get_color_from_hex("259678")
-                                track_color_active: get_color_from_hex("105B47")
-
-                                icon_active: "check"
-                                icon_active_color: "white"
-                                 
-
-                                icon_inactive: "close"
-                                icon_inactive_color: "grey"
-
-                                on_parent: app.uiDict['freeze'] = self
-                                
 
                             
                     ImageButton:
@@ -286,6 +252,12 @@ BoxLayout:
                     name: 'developer'
                     BoxLayout:
                         orientation:'vertical'
+                        canvas.before:
+                            Color:
+                                rgba: 0,0,0,1
+                            Rectangle:
+                                pos: self.pos
+                                size: self.size
                         TextInput:
                             id:'developerinput'
                             text:''
@@ -301,12 +273,14 @@ BoxLayout:
                                 text:'Send'
                                 on_release : app.on_button_developer_send()
                             Button:
+                                text:'Print Status'     
+                                on_release : app.send_command('?')
+                            Button:
+                                text:'Print Devices'     
+                                on_release : app.on_button_print_usb_device_list()
+                            Button:
                                 text:'Back'     
-                                on_release : app.uiDict['sm'].current = 'main'
-                            BoxLayout:
-                                orientation: 'vertical'
-                            BoxLayout:
-                                orientation: 'vertical'
+                                on_release : app.set_screen('main','right')
 
                         TextInput:
                             id: 'developeroutput'
@@ -314,3 +288,79 @@ BoxLayout:
                             readonly:True
                             background_color: 0.5,0.5,0.5,1
                             on_parent: app.uiDict['developeroutput'] = self
+                    
+                Screen:
+                    name : 'settings'
+                    BoxLayout:
+                        name: 'setting container'
+                        orientation: 'vertical'
+                        canvas.before:
+                            Color:
+                                rgba: 0,0,0,1
+                            Rectangle:
+                                pos: self.pos
+                                size: self.size
+                        BoxLayout:
+                            orientation:'horizontal'
+                            Label:
+                                text: '(int) Single Stroke File -def 4'
+                            TextInput:
+                                on_parent: app.settingUiDict['singlestrokefile_int'] = self
+                        BoxLayout:
+                            orientation:'horizontal'
+                            Label:
+                                text: '(int) Double Stroke File -def 0'
+                            TextInput:
+                                on_parent: app.settingUiDict['doublestrokefile_int'] = self
+                        BoxLayout:
+                            orientation:'horizontal'
+                            Label:
+                                text: '(flt) x Offset -def 5'
+                            TextInput:
+                                on_parent: app.settingUiDict['xoffset_flt'] = self
+                        BoxLayout:
+                            orientation:'horizontal'
+                            Label:
+                                text: '(flt) y Offset -def 10'
+                            TextInput:
+                                on_parent: app.settingUiDict['yoffset_flt'] = self
+                        BoxLayout:
+                            orientation:'horizontal'
+                            Label:
+                                text: '(flt) Scale -def 0.9'
+                            TextInput:
+                                on_parent: app.settingUiDict['scale_flt'] = self
+                        BoxLayout:
+                            orientation:'horizontal'
+                            Label:
+                                text: '(int) Letter Limit -def 25'
+                            TextInput:
+                                on_parent: app.settingUiDict['letterlimit_int'] = self
+                        BoxLayout:
+                            orientation:'horizontal'
+                            Label:
+                                text: '(int) Wordwrap Limit -def 10'
+                            TextInput:
+                                on_parent: app.settingUiDict['wordwraplimit_int'] = self
+                        BoxLayout:
+                            orientation:'horizontal'
+                            Label:
+                                text: '(int) Move Speed -def 750'
+                            TextInput:
+                                on_parent: app.settingUiDict['movespeed_int'] = self
+                        BoxLayout:
+                            orientation:'horizontal'
+                            Label:
+                                text: '(int) Cut Speed -def 750'
+                            TextInput:
+                                on_parent: app.settingUiDict['cutspeed_int'] = self
+
+                        
+                        Button:
+                            text: 'Save Settings'
+                            on_release: app.on_button_save_settings()
+                        Button:
+                            text: 'Back'
+                            on_release: app.set_screen('developer', 'right')
+                            
+                        

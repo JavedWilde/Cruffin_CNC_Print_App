@@ -7,16 +7,17 @@ from kivy.uix.screenmanager import SlideTransition
 from kivy.core.text import LabelBase
 
 factor = 1
-Window.size = (int(1080/factor),int(2412/factor))
+#Window.size = (int(1080/factor),int(2412/factor))
 
 class MainApp(MDApp):
     def __init__(self, **kwargs):
         self.uiDict = {}
+        self.settingUiDict = {}
         super().__init__(**kwargs)
 
     def build(self):
         LabelBase.register(name='Lexend-Medium', fn_regular='UiFonts/Lexend/Lexend-Medium.ttf')
-        self.main_widget = Builder.load_file('test_ui.kv')
+        self.main_widget = Builder.load_file('main_ui.kv')
         return self.main_widget
     
     def load_screen(self,screen,direction='left'):
@@ -26,7 +27,7 @@ class MainApp(MDApp):
     # BUTTONS
     def on_button_connect(self):
         self.load_screen('connecting')
-        self.load_screen('main')
+        self.load_screen('developer')
         
     def on_button_print(self):
         self.load_screen('printing')

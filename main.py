@@ -13,6 +13,7 @@ from kivymd.uix.snackbar import MDSnackbar
 from kivymd.uix.label import MDLabel
 from kivymd.uix.snackbar import MDSnackbarActionButton
 from kivy.metrics import dp
+from kivy.storage.jsonstore import JsonStore
 
 from serial import SerialException
 import Helpers
@@ -35,8 +36,12 @@ class MainApp(MDApp):
         self.machine_status = 'Alarm'
         self.machine_connected = False
         self.canceling_print = False
-
         self.dialog_box = None
+
+        self.settingUiDict = {}
+        self.settings_storage = JsonStore('_settings.json')
+        self.machine_settings = self.settings_storage.get('machine_settings')['settings']
+        
         super(MainApp, self).__init__(*args, **kwargs)
     
     def build(self):
@@ -48,7 +53,15 @@ class MainApp(MDApp):
             with self.port_thread_lock:
                 self.serial_port.close()
     
-        
+    
+    # Helpers--------------------------------------------------------------------------
+    def update_settings_ui(self):
+        self.machine_settings = self.settings_storage.get('machine_settings')['settings']
+
+        for setting in self.settingUiDict.keys():
+            self.settingUiDict[setting].text = str(self.machine_settings[setting])
+
+
     def home_machine(self):
         time.sleep(2)
         self.send_command("\r\n\r\n")
@@ -86,6 +99,70 @@ class MainApp(MDApp):
         # self.uiDict['status'].text = stat[0]
         # self.uiDict['status'].background_color = stat[1]
 
+    def establish_connection(self, run_startup = True):
+        if self.serial_port:
+            return
+
+        if platform == 'android':
+            if len(usb.get_usb_device_list())<1:
+                self.show_dialogue_box('\nNo device found, make sure the connections are fine. Try taking out the usb cable and putting it in again.')
+                return
+            try: 
+                usb_device = usb.get_usb_device_list()[0]
+                if not usb_device:
+                    raise SerialException(
+                        "Device {} not present!".format(usb_device.getDeviceName())
+                    )
+                if not usb.has_usb_permission(usb_device):
+                    usb.request_usb_permission(usb_device)
+                    return
+                self.serial_port = serial4a.get_serial_port(
+                    usb_device.getDeviceName(),
+                    115200,
+                    8,
+                    'N',
+                    1,
+                    timeout=1
+                )
+                
+            except Exception as e:
+                self.show_dialogue_box (str(e))
+                return
+        else:
+            if len(list_ports.comports())<2:
+                self.show_dialogue_box('\nNo device found, make sure the connections are fine. Try taking out the usb cable and putting it in again.')
+                return
+            comport = 1 if list_ports.comports()[0].device == 'COM1' else 0
+            try:
+                usb_device = list_ports.comports()[comport].device
+                self.serial_port = Serial(
+                    usb_device,
+                    115200,
+                    8,
+                    'N',
+                    1,
+                    timeout=1
+                )
+                
+            except Exception as e:
+                self.show_dialogue_box(str(e))
+                return
+            
+        print(self.serial_port)
+        if self.serial_port.is_open and not self.read_thread:
+            self.read_thread = MyPausableThread(target=self.read_msg_thread)
+            self.read_thread.daemon = True
+            self.read_thread.start()
+            self.read_thread.resume()
+
+            self.status_thread = MyPausableThread(target=self.request_status_thread)
+            self.status_thread.daemon = True
+
+            threading.Thread(target=self.check_grbl_thread, daemon=True ,args=(run_startup,)).start()
+        else:
+            self.show_dialogue_box('Connection Error, make sure the right device is connected.')
+            return
+
     # THREADS------------------------------------------------------------------------
     def request_status_thread(self, pause_checker):
         while True:
@@ -108,20 +185,20 @@ class MainApp(MDApp):
                 self.show_dialogue_box(str(e))
                 raise e
     
-    def check_grbl_thread(self):
+    def check_grbl_thread(self, run_startup = True):
         print('checking for grbl')
-        self.set_screen('connect')
-        self.set_connection_log('checking connection...')
-        self.set_screen('connecting')
+        if run_startup:
+            self.set_connection_log('checking connection...')
+            self.set_screen('connecting')
         time.sleep(0.5)
-        i = 0
-        for i in range(0,500):
+        for _ in range(0,500):
             if self.machine_connected:
                 print('grbl detected')
                 self.set_connection_log('connection detected')
                 self.set_connection_indicator()
                 time.sleep(0.1)
-                threading.Thread(target=self.setup_machine_thread, daemon=True).start()
+                if run_startup:
+                    threading.Thread(target=self.setup_machine_thread, daemon=True).start()
                 return
             time.sleep(0.01)
 
@@ -162,23 +239,30 @@ class MainApp(MDApp):
         time.sleep(0.5)
         self.set_screen('main') 
 
-    def printing_thread(self, frozen = False):
+    def printing_thread(self):
         start = time.time()
-        if not frozen:
-            self.set_screen('printing')
-            self.set_printing_log('Generating Gcode...')
-            self.update_progress_bar(100)
+        self.set_screen('printing')
+        self.set_printing_log('Generating Gcode...')
+        self.update_progress_bar(100)
         try:
-            stroke = 0 if self.uiDict['stroke'].active else 4
+            stroke = self.machine_settings['doublestrokefile_int'] if self.uiDict['stroke'].active else self.machine_settings['singlestrokefile_int']
             fontFile = f'Fonts/SVGFONT ({stroke}).svg' #change numbers for different fonts, 0 - 18
-            gcode = Helpers.GetGcode(self.uiDict['nameinput'].text,fontFile,5,8,0.9,750,750,25,6,False)
+            gcode = Helpers.GetGcode(
+                self.uiDict['nameinput'].text,
+                fontFile,
+                self.machine_settings['xoffset_flt'],
+                self.machine_settings['yoffset_flt'],
+                self.machine_settings['scale_flt'],
+                self.machine_settings['movespeed_int'],
+                self.machine_settings['cutspeed_int'],
+                self.machine_settings['letterlimit_int'],
+                self.machine_settings['wordwraplimit_int'],
+                False)
         except Exception as e:
             self.show_dialogue_box(str(e))
-            if not frozen:
-                self.set_screen('main')
+            self.set_screen('main')
             return
-        if not frozen:
-            self.set_printing_log('Printing...')
+        self.set_printing_log('Printing...')
         self.read_thread.pause()
         self.status_thread.pause()
 
@@ -203,25 +287,21 @@ class MainApp(MDApp):
             self.send_command('G0F1000Y90')
             time.sleep(1)
         else:
-            if not frozen:
-                self.set_printing_log(f'Done, Unloading...')
+            self.set_printing_log(f'Done, Unloading...')
         
         self.status_thread.resume()
         self.read_thread.resume()
         time.sleep(2)
-        if not frozen:
-            while True:
-                if self.machine_status == 'Idle':
-                    self.canceling_print = False
-                    self.set_cancel_button('Icons/cancel_button_up.png')
-                    self.clear_name_input_field()
-                    self.set_screen('main','right')
-                    self.show_dialogue_box(f'Last print took:\n{time.time()-start:.2f} seconds','Info')
-                    self.status_thread.pause()
-                    break
+        while True:
+            if self.machine_status == 'Idle':
+                self.canceling_print = False
+                self.set_cancel_button('Icons/cancel_button_up.png')
+                self.set_screen('main','right')
+                self.show_dialogue_box(f'\nMsg:\n{self.uiDict["nameinput"].text}\n\nTime:\n{time.time()-start:.2f} seconds\n\nFontId:\nSVG_FONT{stroke}','Last Print Info')
+                self.clear_name_input_field()
+                self.status_thread.pause()
+                break
         self.status_thread.pause()
-
-    
 
     # Main Thread Transfer Functions   
     @mainthread
@@ -250,7 +330,7 @@ class MainApp(MDApp):
         if '?' not in command:
             self.uiDict['developeroutput'].text += f'[Sent] {command}\n'
             print(f'[Sent] {command}\n')
-      
+
     @mainthread
     def set_screen(self,screenname,direction='left'):
         self.uiDict['sm'].transition = SlideTransition(direction=direction, duration=.25)
@@ -279,7 +359,6 @@ class MainApp(MDApp):
     def set_connection_indicator(self):
         self.uiDict['connectionstatus'].source = 'Icons/connected.png'
 
-    
     @mainthread
     def show_dialogue_box(self, text, header = 'Error'):
         if not self.dialog_box:
@@ -294,94 +373,67 @@ class MainApp(MDApp):
         
     # BUTTON ACTIONS
     def on_button_connect(self):
-        if platform == 'android':
-            if len(usb.get_usb_device_list())<1:
-                self.show_dialogue_box('\nNo device found, make sure the connections are fine. Try taking out the usb cable and putting it in again.')
-                return
-            try: 
-                usb_device = usb.get_usb_device_list()[0]
-                if not usb_device:
-                    raise SerialException(
-                        "Device {} not present!".format(usb_device.getDeviceName())
-                    )
-                if not usb.has_usb_permission(usb_device):
-                    usb.request_usb_permission(usb_device)
-                    return
-                self.serial_port = serial4a.get_serial_port(
-                    usb_device.getDeviceName(),
-                    115200,
-                    8,
-                    'N',
-                    1,
-                    timeout=1
-                )
-                
-            except Exception as e:
-                self.show_dialogue_box (str(e))
-                return
-        else:
-            if len(list_ports.comports())<1:
-                self.show_dialogue_box('\nNo device found, make sure the connections are fine. Try taking out the usb cable and putting it in again.')
-                return
-            comport = 1 if list_ports.comports()[0].device == 'COM1' else 0
-            try:
-                usb_device = list_ports.comports()[comport].device
-                self.serial_port = Serial(
-                    usb_device,
-                    115200,
-                    8,
-                    'N',
-                    1,
-                    timeout=1
-                )
-                
-            except Exception as e:
-                self.show_dialogue_box(str(e))
-                return
-            
-        print(self.serial_port)
-        if self.serial_port.is_open and not self.read_thread:
-            self.read_thread = MyPausableThread(target=self.read_msg_thread)
-            self.read_thread.daemon = True
-            self.read_thread.start()
-            self.read_thread.resume()
-
-            self.status_thread = MyPausableThread(target=self.request_status_thread)
-            self.status_thread.daemon = True
-
-            threading.Thread(target=self.check_grbl_thread, daemon=True).start()
-        else:
-            self.show_dialogue_box('Connection Error, make sure the right device is connected.')
-            return
-    
+        self.establish_connection()
+        
     def on_button_print(self):
-        if not self.uiDict['nameinput'].text:
-            self.show_dialogue_box('Name field cannot be empty. Please enter a name.')
+        if not self.uiDict['nameinput'].text or len(self.uiDict['nameinput'].text) > 25:
+            self.show_dialogue_box('Name field cannot be empty or over 25 letters.')
             return
-        if self.uiDict['freeze'].active:
-            start = time.time()
-            self.printing_thread(True)
-            self.show_dialogue_box(f'Last print took:\n{time.time()-start:.2f} seconds','Info')
-            self.clear_name_input_field()
-        else:
-            threading.Thread(target=self.printing_thread, daemon=True).start()
+        threading.Thread(target=self.printing_thread, daemon=True).start()
 
     def on_button_reset(self):
         self.show_dialogue_box('Please close the app, disconnect the usb cable from the phone and reconnect it, thats the best way to reset for now :)', 'Info')
-
         
     def on_button_print_cancel(self):
             if not self.canceling_print:
                 self.canceling_print = True
 
     def on_button_open_developer_screen(self):
-        self.uiDict['sm'].current = 'developer'
+        self.establish_connection(False)
+        self.set_screen('developer')
 
     def on_button_developer_send(self):
-        self.send_command(self.uiDict['developerinput'].text)
+        if 'setting' in self.uiDict['developerinput'].text.lower().strip():
+            self.set_screen('settings')
+            self.update_settings_ui()
+        else:
+            self.send_command(self.uiDict['developerinput'].text)
         self.uiDict["developerinput"].text = ''
 
-    
+    def on_button_print_usb_device_list(self):
+        if platform == 'android':
+            usb_devices = usb.get_usb_device_list()
+            for usb_device in usb_devices:
+                if not usb_device:
+                    self.show_dialogue_box(
+                        "Device {} not present!".format(usb_device.getDeviceName())
+                    )
+                    return
+                if not usb.has_usb_permission(usb_device):
+                    usb.request_usb_permission(usb_device)
+                    return    
+
+            for x in usb_devices:
+                self.uiDict['developeroutput'].text += f"{x} - {x.getDeviceName()}\n" 
+        else:
+            for com in list_ports.comports():
+                self.uiDict['developeroutput'].text += f"{com} - {com.device}\n"
+               
+    def on_button_save_settings(self):
+        dict = {}
+        for key, value in self.settingUiDict.items():
+            try:
+                if key.split('_')[1] == "flt":
+                    dict[key] = float(value.text)
+                else:
+                    dict[key] = int(value.text)
+            except Exception as e:
+                self.show_dialogue_box(f"{key} : \n{e}")
+                break
+        self.settings_storage.put('machine_settings',settings = dict)
+        self.update_settings_ui()
+        self.show_dialogue_box(text='Settings Saved', header='Info')
+        
 
 if __name__ == '__main__':
     MainApp().run()

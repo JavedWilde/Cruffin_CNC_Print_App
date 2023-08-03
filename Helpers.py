@@ -319,9 +319,9 @@ def GetMultiLine(text, fontDict):
 
     return paths
 
-def GetPaths(full_text, fontDict):
+def GetPaths(full_text, fontDict, limit):
     space_space = 400
-    text_list = word_wrapper(full_text,10).split('\n')
+    text_list = word_wrapper(full_text,limit).split('\n')
     paths = []
     line_extremes = [[0,0] for _ in text_list] #empty list of line extremes
     x_extreme_index = 0
@@ -362,7 +362,7 @@ def GetPaths(full_text, fontDict):
 
 
 
-def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, letterLimit, arThres, border):
+def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, letterLimit, wordwrapLimit, border):
     
     bed_sizes = {
         'small' : [70,25],
@@ -377,7 +377,7 @@ def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, let
         return False
 
 
-    final_paths = GetPaths(text, fontDict)
+    final_paths = GetPaths(text, fontDict, wordwrapLimit)
 
     # Old Method
 
