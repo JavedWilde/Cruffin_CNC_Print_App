@@ -9,11 +9,9 @@ from kivy.core.text import LabelBase
 from kivy.uix.screenmanager import SlideTransition
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
-from kivymd.uix.snackbar import MDSnackbar
-from kivymd.uix.label import MDLabel
-from kivymd.uix.snackbar import MDSnackbarActionButton
 from kivy.metrics import dp
 from kivy.storage.jsonstore import JsonStore
+from kivy.graphics.texture import Texture
 
 from serial import SerialException
 import Helpers
@@ -41,6 +39,9 @@ class MainApp(MDApp):
         self.settingUiDict = {}
         self.settings_storage = JsonStore('_settings.json')
         self.machine_settings = self.settings_storage.get('machine_settings')['settings']
+
+        self.padding = [self.machine_settings['xpadding_int'],self.machine_settings['ypadding_int']]
+        print(self.padding)
         
         super(MainApp, self).__init__(*args, **kwargs)
     
@@ -57,9 +58,9 @@ class MainApp(MDApp):
     # Helpers--------------------------------------------------------------------------
     def update_settings_ui(self):
         self.machine_settings = self.settings_storage.get('machine_settings')['settings']
-
         for setting in self.settingUiDict.keys():
             self.settingUiDict[setting].text = str(self.machine_settings[setting])
+        self.padding = [self.machine_settings['xpadding_int'],self.machine_settings['ypadding_int']]
 
 
     def home_machine(self):
@@ -79,6 +80,26 @@ class MainApp(MDApp):
         time.sleep(1)
         self.send_command('G0F1000Y90')
         time.sleep(1)
+    
+    def get_gcode(self, border = False):
+        stroke = self.machine_settings['doublestrokefile_int'] if self.uiDict['stroke'].active else self.machine_settings['singlestrokefile_int']
+        fontFile = f'Fonts/SVGFONT ({stroke}).svg' #change numbers for different fonts, 0 - 18
+        gcode = Helpers.GetGcode(
+            self.uiDict['nameinput'].text,
+            fontFile,
+            self.machine_settings['xoffset_flt'],
+            self.machine_settings['yoffset_flt'],
+            self.machine_settings['scale_flt'],
+            self.machine_settings['movespeed_int'],
+            self.machine_settings['cutspeed_int'],
+            self.machine_settings['letterlimit_int'],
+            self.machine_settings['wordwraplimit_int'],
+            border,
+            self.machine_settings['bedsizex_int'],
+            self.machine_settings['bedsizey_int'],
+            self.padding[0],
+            self.padding[1])
+        return gcode, stroke
 
     def update_status(self, status):
         status_lookup = {
@@ -129,7 +150,7 @@ class MainApp(MDApp):
                 self.show_dialogue_box (str(e))
                 return
         else:
-            if len(list_ports.comports())<2:
+            if len(list_ports.comports())<1:
                 self.show_dialogue_box('\nNo device found, make sure the connections are fine. Try taking out the usb cable and putting it in again.')
                 return
             comport = 1 if list_ports.comports()[0].device == 'COM1' else 0
@@ -240,28 +261,18 @@ class MainApp(MDApp):
         self.set_screen('main') 
 
     def printing_thread(self):
-        start = time.time()
         self.set_screen('printing')
+        start = time.time()
         self.set_printing_log('Generating Gcode...')
         self.update_progress_bar(100)
+
         try:
-            stroke = self.machine_settings['doublestrokefile_int'] if self.uiDict['stroke'].active else self.machine_settings['singlestrokefile_int']
-            fontFile = f'Fonts/SVGFONT ({stroke}).svg' #change numbers for different fonts, 0 - 18
-            gcode = Helpers.GetGcode(
-                self.uiDict['nameinput'].text,
-                fontFile,
-                self.machine_settings['xoffset_flt'],
-                self.machine_settings['yoffset_flt'],
-                self.machine_settings['scale_flt'],
-                self.machine_settings['movespeed_int'],
-                self.machine_settings['cutspeed_int'],
-                self.machine_settings['letterlimit_int'],
-                self.machine_settings['wordwraplimit_int'],
-                False)
+            gcode, stroke = self.get_gcode()
         except Exception as e:
             self.show_dialogue_box(str(e))
             self.set_screen('main')
             return
+
         self.set_printing_log('Printing...')
         self.read_thread.pause()
         self.status_thread.pause()
@@ -379,7 +390,31 @@ class MainApp(MDApp):
         if not self.uiDict['nameinput'].text or len(self.uiDict['nameinput'].text) > 25:
             self.show_dialogue_box('Name field cannot be empty or over 25 letters.')
             return
-        threading.Thread(target=self.printing_thread, daemon=True).start()
+
+        if self.uiDict['previewswitch'].active and self.uiDict['sm'].current != 'preview':
+            img = Helpers.plot_gcode_kivy_texture(self.get_gcode(True)[0])
+            w, h, _ = img.shape
+            texture = Texture.create(size=(h, w),colorfmt='rgba')
+            texture.blit_buffer(img.flatten(), colorfmt='rgba', bufferfmt='ubyte')
+            self.uiDict['previewimage'].texture = texture
+            self.uiDict['xpadding'].text = str(self.padding[0])
+            self.uiDict['ypadding'].text = str(self.padding[1])
+            self.set_screen('preview')
+        else:
+            threading.Thread(target=self.printing_thread, daemon=True).start()
+
+    def on_button_regenerate(self):
+        try:
+            self.padding[0] = int(self.uiDict['xpadding'].text)
+            self.padding[1] = int(self.uiDict['ypadding'].text)
+        except Exception as e:
+            self.show_dialogue_box(str(e))
+            return
+        img = Helpers.plot_gcode_kivy_texture(self.get_gcode(True)[0])
+        w, h, _ = img.shape
+        texture = Texture.create(size=(h, w),colorfmt='rgba')
+        texture.blit_buffer(img.flatten(), colorfmt='rgba', bufferfmt='ubyte')
+        self.uiDict['previewimage'].texture = texture
 
     def on_button_reset(self):
         self.show_dialogue_box('Please close the app, disconnect the usb cable from the phone and reconnect it, thats the best way to reset for now :)', 'Info')
@@ -391,14 +426,6 @@ class MainApp(MDApp):
     def on_button_open_developer_screen(self):
         self.establish_connection(False)
         self.set_screen('developer')
-
-    def on_button_developer_send(self):
-        if 'setting' in self.uiDict['developerinput'].text.lower().strip():
-            self.set_screen('settings')
-            self.update_settings_ui()
-        else:
-            self.send_command(self.uiDict['developerinput'].text)
-        self.uiDict["developerinput"].text = ''
 
     def on_button_print_usb_device_list(self):
         if platform == 'android':

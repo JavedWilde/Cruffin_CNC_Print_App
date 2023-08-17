@@ -132,11 +132,13 @@ BoxLayout:
                         AnchorLayout:
                             anchor_x: 'left'
                             anchor_y: 'center'
-                            Label:
+                            MDLabel:
                                 text: 'Use two strokes (longer print)'
                                 font_name:'Lexend-Medium'
                                 font_size:dp(15)
-                                #pos_hint: {'center_x': 1,'center_y': 0.5}
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
                         AnchorLayout:
                             anchor_x:'right'
                             anchor_y:'center'
@@ -156,6 +158,41 @@ BoxLayout:
                                 icon_inactive_color: "grey"
 
                                 on_parent: app.uiDict['stroke'] = self
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        size_hint: None, None
+                        size: self.parent.width * 0.75, dp(10)
+                        center_x : self.parent.center_x
+                        top : self.parent.top - dp(560)
+                        AnchorLayout:
+                            anchor_x: 'left'
+                            anchor_y: 'center'
+                            MDLabel:
+                                text: 'Preview Before Print'
+                                font_name:'Lexend-Medium'
+                                font_size:dp(15)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
+                        AnchorLayout:
+                            anchor_x:'right'
+                            anchor_y:'center'
+                            size_hint: None, None
+                            width : dp(5)
+                            height: dp(5)
+                            MDSwitch:
+                                pos_hint: {'center_x': 0.5,'center_y': 0.5}
+                                thumb_color_active: get_color_from_hex("259678")
+                                track_color_active: get_color_from_hex("105B47")
+
+                                icon_active: "check"
+                                icon_active_color: "white"
+                                 
+
+                                icon_inactive: "close"
+                                icon_inactive_color: "grey"
+
+                                on_parent: app.uiDict['previewswitch'] = self
 
                             
                     ImageButton:
@@ -211,6 +248,95 @@ BoxLayout:
                                 size_hint_x: 0.5
 
                 Screen:
+                    name:'preview'
+                    Image:
+                        fit_mode:'contain'
+                        on_parent: app.uiDict['previewimage'] = self
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        center_y: dp(275)
+                        size_hint : None, None
+                        width: root.width 
+                        BoxLayout:
+                            orientation: 'vertical'
+                            padding: dp(5)
+                            MDTextField:
+                                on_parent: app.uiDict['xpadding'] = self
+                                text:''
+                                hint_text: 'X Padding in mm'
+                                mode : 'fill'
+                                max_text_length: 25
+                                multiline: False
+                                line_color_normal: get_color_from_hex('3E4147')
+                                line_color_focus: get_color_from_hex("259678")
+                                fill_color_normal: get_color_from_hex('232325')
+                                text_color_normal: get_color_from_hex('3E4147')
+                                hint_text_color_normal: get_color_from_hex('3E4147')
+                                hint_text_color_focus: get_color_from_hex("259678")
+                                fill_color_focus: get_color_from_hex('323234')
+                                text_color_normal: get_color_from_hex('BFBFBF')
+                                text_color_focus: get_color_from_hex('FFFFFF')
+                        BoxLayout:
+                            orientation: 'vertical'
+                            padding: dp(5)
+                            MDTextField:
+                                on_parent: app.uiDict['ypadding'] = self
+                                text:''
+                                hint_text: 'Y Padding in mm'
+                                mode : 'fill'
+                                max_text_length: 25
+                                multiline: False
+                                line_color_normal: get_color_from_hex('3E4147')
+                                line_color_focus: get_color_from_hex("259678")
+                                fill_color_normal: get_color_from_hex('232325')
+                                text_color_normal: get_color_from_hex('3E4147')
+                                hint_text_color_normal: get_color_from_hex('3E4147')
+                                hint_text_color_focus: get_color_from_hex("259678")
+                                fill_color_focus: get_color_from_hex('323234')
+                                text_color_normal: get_color_from_hex('BFBFBF')
+                                text_color_focus: get_color_from_hex('FFFFFF')
+                        
+                    ImageButton:
+                        on_press: 
+                            self.source = 'Icons/regenerate_button_down.png'
+                        on_release:
+                            app.on_button_regenerate()
+                            self.source = 'Icons/regenerate_button_up.png'
+
+                        source: 'Icons/regenerate_button_up.png'
+                        center_x : self.parent.center_x
+                        top : dp(225)
+                        size_hint: None, None
+                        size: root.width * 0.25,dp(50)
+
+                    ImageButton:
+                        on_press: 
+                            self.source = 'Icons/print_button_down.png'
+                        on_release:
+                            app.on_button_print()
+                            self.source = 'Icons/print_button_up.png'
+
+                        source: 'Icons/print_button_up.png'
+                        center_x : self.parent.center_x
+                        top : dp(100)
+                        size_hint: None, None
+                        size: self.parent.width * 0.9,dp(100)
+                    ImageButton:
+                        on_press: 
+                            self.source = 'Icons/back_button_down.png'
+                        on_release:
+                            app.set_screen('main','right')
+                            self.source = 'Icons/back_button_up.png'
+
+                        source: 'Icons/back_button_up.png'
+                        center_x : self.parent.center_x
+                        top : dp(50)
+                        size_hint: None, None
+                        size: self.parent.width * 0.9,dp(100)
+
+                        
+                    
+                Screen:
                     name: 'printing'
                     BoxLayout:
                         orientation: 'vertical'
@@ -258,20 +384,36 @@ BoxLayout:
                             Rectangle:
                                 pos: self.pos
                                 size: self.size
-                        TextInput:
-                            id:'developerinput'
-                            text:''
+                        BoxLayout:
+                            orientation: 'horizontal'
                             size_hint_y: None
                             height : '50dp'
-                            multiline: False
-                            on_parent: app.uiDict['developerinput'] = self
+                            TextInput:
+                                id:'developerinput'
+                                text:''
+                                multiline: False
+                                on_parent: app.uiDict['developerinput'] = self
+                            Button:
+                                text: 'Send'
+                                size_hint_x: 0.2
+                                on_release : 
+                                    app.send_command(app.uiDict['developerinput'].text)
+                                    app.uiDict["developerinput"].text = ''
+                        TextInput:
+                            id: 'developeroutput'
+                            text: ''
+                            readonly:True
+                            background_color: 0.5,0.5,0.5,1
+                            on_parent: app.uiDict['developeroutput'] = self
                         GridLayout:
                             cols: 4
                             size_hint_y : None
-                            height : '100dp'
+                            height : '75dp'
                             Button:
-                                text:'Send'
-                                on_release : app.on_button_developer_send()
+                                text:'Settings'
+                                on_release :
+                                    app.set_screen('settings')
+                                    app.update_settings_ui()
                             Button:
                                 text:'Print Status'     
                                 on_release : app.send_command('?')
@@ -281,13 +423,6 @@ BoxLayout:
                             Button:
                                 text:'Back'     
                                 on_release : app.set_screen('main','right')
-
-                        TextInput:
-                            id: 'developeroutput'
-                            text: ''
-                            readonly:True
-                            background_color: 0.5,0.5,0.5,1
-                            on_parent: app.uiDict['developeroutput'] = self
                     
                 Screen:
                     name : 'settings'
@@ -302,65 +437,143 @@ BoxLayout:
                                 size: self.size
                         BoxLayout:
                             orientation:'horizontal'
-                            Label:
-                                text: '(int) Single Stroke File -def 4'
+                            MDLabel:
+                                text: '(int) Single Stroke File     -def 4'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
                             TextInput:
                                 on_parent: app.settingUiDict['singlestrokefile_int'] = self
                         BoxLayout:
                             orientation:'horizontal'
-                            Label:
-                                text: '(int) Double Stroke File -def 0'
+                            MDLabel:
+                                text: '(int) Double Stroke File     -def 0'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
                             TextInput:
                                 on_parent: app.settingUiDict['doublestrokefile_int'] = self
                         BoxLayout:
                             orientation:'horizontal'
-                            Label:
-                                text: '(flt) x Offset -def 5'
+                            MDLabel:
+                                text: '(flt) x Offset in mm     -def 5'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
                             TextInput:
                                 on_parent: app.settingUiDict['xoffset_flt'] = self
                         BoxLayout:
                             orientation:'horizontal'
-                            Label:
-                                text: '(flt) y Offset -def 10'
+                            MDLabel:
+                                text: '(flt) y Offset in mm     -def 10'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
                             TextInput:
                                 on_parent: app.settingUiDict['yoffset_flt'] = self
                         BoxLayout:
                             orientation:'horizontal'
-                            Label:
-                                text: '(flt) Scale -def 0.9'
+                            MDLabel:
+                                text: '(int) x Padding in mm     -def 2'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
+                            TextInput:
+                                on_parent: app.settingUiDict['xpadding_int'] = self
+                        BoxLayout:
+                            orientation:'horizontal'
+                            MDLabel:
+                                text: '(int) y Padding in mm     -def 2'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
+                            TextInput:
+                                on_parent: app.settingUiDict['ypadding_int'] = self
+                        BoxLayout:
+                            orientation:'horizontal'
+                            MDLabel:
+                                text: '(flt) Scale     -def 1'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
                             TextInput:
                                 on_parent: app.settingUiDict['scale_flt'] = self
                         BoxLayout:
                             orientation:'horizontal'
-                            Label:
-                                text: '(int) Letter Limit -def 25'
+                            MDLabel:
+                                text: '(int) Bed Size x in mm     -def 70'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
+                            TextInput:
+                                on_parent: app.settingUiDict['bedsizex_int'] = self
+                        BoxLayout:
+                            orientation:'horizontal'
+                            MDLabel:
+                                text: '(int) Bed Size y in mm     -def 40'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
+                            TextInput:
+                                on_parent: app.settingUiDict['bedsizey_int'] = self
+                        BoxLayout:
+                            orientation:'horizontal'
+                            MDLabel:
+                                text: '(int) Letter Limit     -def 25'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
                             TextInput:
                                 on_parent: app.settingUiDict['letterlimit_int'] = self
                         BoxLayout:
                             orientation:'horizontal'
-                            Label:
-                                text: '(int) Wordwrap Limit -def 10'
+                            MDLabel:
+                                text: '(int) Wordwrap Limit     -def 10'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
                             TextInput:
                                 on_parent: app.settingUiDict['wordwraplimit_int'] = self
                         BoxLayout:
                             orientation:'horizontal'
-                            Label:
-                                text: '(int) Move Speed -def 750'
+                            MDLabel:
+                                text: '(int) Move Speed     -def 750'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
                             TextInput:
                                 on_parent: app.settingUiDict['movespeed_int'] = self
                         BoxLayout:
                             orientation:'horizontal'
-                            Label:
-                                text: '(int) Cut Speed -def 750'
+                            MDLabel:
+                                text: '(int) Cut Speed     -def 750'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
                             TextInput:
                                 on_parent: app.settingUiDict['cutspeed_int'] = self
 
                         
                         Button:
-                            text: 'Save Settings'
-                            on_release: app.on_button_save_settings()
-                        Button:
-                            text: 'Back'
-                            on_release: app.set_screen('developer', 'right')
+                            text: 'Save Settings and Go Back'
+                            on_release: 
+                                app.on_button_save_settings()
+                                app.set_screen('developer', 'right')
+                        # Button:
+                        #     text: 'Back'
+                        #     on_release: app.set_screen('developer', 'right')
                             
                         

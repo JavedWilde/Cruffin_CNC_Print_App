@@ -9,6 +9,12 @@ from kivy.uix.behaviors import ButtonBehavior
 from kivy.factory import Factory
 from kivy.clock import Clock
 import threading
+import re
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 
 class ImageButton(ButtonBehavior, Image):
     def __init__(self, **kwargs):
@@ -38,7 +44,6 @@ class LongpressButton(Factory.Button):
     def on_long_press(self, *largs):
         pass
 
-
 class MyPausableThread(threading.Thread):
 
     def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
@@ -52,6 +57,63 @@ class MyPausableThread(threading.Thread):
 
     def resume(self):
         self._event.set()
+
+
+def plot_gcode_kivy_texture(gcode_text):
+    x, y, z = 0, 0, 0
+    x_values, y_values = [], []
+    pen_down = False
+    gcode_commands = re.findall(r"[Gg]\d+\s?(?:[Ff]\d+)?\s?(?:[Xx]?(-?\d+\.?\d*)\s?)?(?:[Yy]?(-?\d+\.?\d*)\s?)?(?:[Zz]?(-?\d+\.?\d*))?[;]?", gcode_text)
+    for command in gcode_commands:
+        if command[0]:
+            x = float(command[0])
+        if command[1]:
+            y = float(command[1])
+        if command[2]:
+            z = float(command[2])
+            if z < 0:
+                pen_down = True
+            elif z > 0:
+                pen_down = False
+        if pen_down and (command[0] or command[1] or command[2]):
+            x_values.append(x)
+            y_values.append(y)
+        elif not pen_down:
+            x_values.append(None)
+            y_values.append(None)
+    
+    fig, ax = plt.subplots()
+
+    # Calculate the data range for x and y
+    x_range = max(x for x in x_values if x is not None) - min(x for x in x_values if x is not None)
+    y_range = max(y for y in y_values if y is not None) - min(y for y in y_values if y is not None)
+
+    # Set the figure size based on the data range
+    fig.set_size_inches(x_range*0.1, y_range*0.1)
+    
+    # Adjust the spacing around the plot
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+
+    ax.plot(x_values, y_values, 'b-')  # Set the line color to white
+    ax.set_xlim(min(x for x in x_values if x is not None),
+                max(x for x in x_values if x is not None))
+    ax.set_ylim(min(y for y in y_values if y is not None),
+                max(y for y in y_values if y is not None))
+    
+    ax.set_xticks([])  # Remove x-axis ticks and labels
+    ax.set_yticks([])  # Remove y-axis ticks and labels
+    
+
+    canvas = FigureCanvasAgg(fig)
+    canvas.draw()
+
+    # Convert the plot to a NumPy array and flip on both axes
+    width, height = fig.get_size_inches() * fig.dpi
+    plot_array = np.frombuffer(canvas.tostring_rgb(), dtype='uint8').reshape(int(height), int(width), 3)
+    flipped_array = np.flipud(plot_array)
+    #plt.close()
+    rgba_array = np.dstack((flipped_array, np.full_like(flipped_array[..., :1], 255, dtype=np.uint8)))
+    return rgba_array
 
 def GetGlyphDictionary(filepath):
     tree = ET.parse(filepath)
@@ -362,13 +424,13 @@ def GetPaths(full_text, fontDict, limit):
 
 
 
-def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, letterLimit, wordwrapLimit, border):
+def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, letterLimit, wordwrapLimit, border, bed_size_x, bed_size_y, x_padding, y_padding):
     
     bed_sizes = {
         'small' : [70,25],
         'large' : [70,45]
     }
-    active_bed_size = bed_sizes['large']
+    active_bed_size = [bed_size_x,bed_size_y]
 
     fontDict = GetGlyphDictionary(fontFile)
 
@@ -396,9 +458,9 @@ def GetGcode(text, fontFile, xOffset, yOffset, scale, move_speed, cut_speed, let
     gcode = GenerateGcode(move_speed, cut_speed, GetSvg(final_paths))
     gcode, bbox = GcodeScale(gcode,1,-1)
     gcode, bbox = GcodeMove(gcode,(bbox[0] * -1) + 1,(bbox[2] * -1) + 1)
-    scalefactor = active_bed_size[0]/bbox[1]
-    if((bbox[3] * scalefactor)>active_bed_size[1]):
-        scalefactor = active_bed_size[1]/bbox[3]
+    scalefactor = (active_bed_size[0]-(x_padding*2))/bbox[1]
+    if((bbox[3] * scalefactor)>(active_bed_size[1]-(y_padding*2))):
+        scalefactor = (active_bed_size[1]-(y_padding*2))/bbox[3]
     gcode, bbox = GcodeScale(gcode,scalefactor * scale,scalefactor * scale)
     x_center_move = (active_bed_size[0] - bbox[1])/2
     y_center_move = (active_bed_size[1] - bbox[3])/2
