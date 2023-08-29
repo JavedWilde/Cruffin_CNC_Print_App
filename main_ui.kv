@@ -18,10 +18,11 @@ BoxLayout:
             top: self.parent.top
             size_hint_x: None
             width: root.width
+            height: dp(75)
         Image:
             source: 'Icons/disconnected.png'
             center_x : self.parent.center_x
-            top : self.parent.top - dp(75)
+            top : self.parent.top - dp(60)
             size_hint: None, None
             size: dp(75), dp(75)
             on_parent: app.uiDict['connectionstatus'] = self
@@ -252,6 +253,10 @@ BoxLayout:
                     Image:
                         fit_mode:'contain'
                         on_parent: app.uiDict['previewimage'] = self
+                        size_hint : None, None
+                        width: root.width
+                        height : dp(250)
+                        top: self.parent.top - dp(125)
                     BoxLayout:
                         orientation: 'horizontal'
                         center_y: dp(275)
@@ -305,7 +310,7 @@ BoxLayout:
 
                         source: 'Icons/regenerate_button_up.png'
                         center_x : self.parent.center_x
-                        top : dp(225)
+                        top : dp(240)
                         size_hint: None, None
                         size: root.width * 0.25,dp(50)
 
@@ -318,9 +323,9 @@ BoxLayout:
 
                         source: 'Icons/print_button_up.png'
                         center_x : self.parent.center_x
-                        top : dp(100)
+                        top : dp(125)
                         size_hint: None, None
-                        size: self.parent.width * 0.9,dp(100)
+                        size: self.parent.width * 0.9,dp(125)
                     ImageButton:
                         on_press: 
                             self.source = 'Icons/back_button_down.png'
@@ -330,7 +335,7 @@ BoxLayout:
 
                         source: 'Icons/back_button_up.png'
                         center_x : self.parent.center_x
-                        top : dp(50)
+                        top : dp(60)
                         size_hint: None, None
                         size: self.parent.width * 0.9,dp(100)
 
@@ -525,6 +530,16 @@ BoxLayout:
                                 text_color: 1,1,1,1
                             TextInput:
                                 on_parent: app.settingUiDict['bedsizey_int'] = self
+                        BoxLayout:
+                            orientation:'horizontal'
+                            MDLabel:
+                                text: '(int) Bed Out Distance for Loading     -def 85'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,1,1,1
+                            TextInput:
+                                on_parent: app.settingUiDict['bedout_int'] = self
                         BoxLayout:
                             orientation:'horizontal'
                             MDLabel:

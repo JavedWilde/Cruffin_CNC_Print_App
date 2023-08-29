@@ -1,10 +1,13 @@
 import random
+import time
 import Helpers
 import re
-import matplotlib.pyplot as plt
-from kivy.graphics.texture import Texture
-from matplotlib.backends.backend_agg import FigureCanvasAgg
-from PIL import Image, ImageDraw
+from matplotlib import pyplot as plt
+from serial.tools import list_ports
+from serial import Serial
+import threading
+from Helpers import MyPausableThread
+
 greeting_messages = [
     "Happy birthday to you",
     "Cheers to your retirement",
@@ -108,12 +111,16 @@ greeting_messages = [
     "Congrats on your award",
 ]
 
+
 def parse_gcode(gcode_text):
     x, y, z = 0, 0, 0
     x_values, y_values = [], []
     pen_down = False
 
-    gcode_commands = re.findall(r"[Gg]\d+\s?(?:[Ff]\d+)?\s?(?:[Xx]?(-?\d+\.?\d*)\s?)?(?:[Yy]?(-?\d+\.?\d*)\s?)?(?:[Zz]?(-?\d+\.?\d*))?[;]?", gcode_text)
+    gcode_commands = re.findall(
+        r"[Gg]\d+\s?(?:[Ff]\d+)?\s?(?:[Xx]?(-?\d+\.?\d*)\s?)?(?:[Yy]?(-?\d+\.?\d*)\s?)?(?:[Zz]?(-?\d+\.?\d*))?[;]?",
+        gcode_text,
+    )
     for command in gcode_commands:
         if command[0]:
             x = float(command[0])
@@ -134,71 +141,187 @@ def parse_gcode(gcode_text):
 
     return x_values, y_values
 
+
 def plot_gcode_preview(gcode_text, filename):
     x_values, y_values = parse_gcode(gcode_text)
-    
+
     fig, ax = plt.subplots()
 
     # Calculate the data range for x and y
-    x_range = max(x for x in x_values if x is not None) - min(x for x in x_values if x is not None)
-    y_range = max(y for y in y_values if y is not None) - min(y for y in y_values if y is not None)
+    x_range = max(x for x in x_values if x is not None) - min(
+        x for x in x_values if x is not None
+    )
+    y_range = max(y for y in y_values if y is not None) - min(
+        y for y in y_values if y is not None
+    )
 
     # Set the figure size based on the data range
-    fig.set_size_inches(x_range*0.1, y_range*0.1)
+    fig.set_size_inches(x_range * 0.1, y_range * 0.1)
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
 
-    ax.plot(x_values, y_values, 'b-')  # Set the line color to white
-    ax.set_xlim(min(x for x in x_values if x is not None),
-                max(x for x in x_values if x is not None))
-    ax.set_ylim(min(y for y in y_values if y is not None),
-                max(y for y in y_values if y is not None))
-    
+    ax.plot(x_values, y_values, "b-")  # Set the line color to white
+    ax.set_xlim(
+        min(x for x in x_values if x is not None),
+        max(x for x in x_values if x is not None),
+    )
+    ax.set_ylim(
+        min(y for y in y_values if y is not None),
+        max(y for y in y_values if y is not None),
+    )
+
     ax.set_xticks([])  # Remove x-axis ticks and labels
     ax.set_yticks([])  # Remove y-axis ticks and labels
 
-    plt.savefig(filename, facecolor='black')  # Set the background color for the saved image
+    # Set the background color for the saved image
+    plt.savefig(filename, facecolor="black")
     plt.close()
-def create_png(gcode_text, output_path, width, height):
-    path = parse_gcode(gcode_text)
 
-    # Filter out None values before calculating min/max
-    valid_coords = [coord for coord in path if coord is not None]
-    
-    if valid_coords:
-        min_x = min(coord[0] for coord in valid_coords)
-        max_x = max(coord[0] for coord in valid_coords)
-        min_y = min(coord[1] for coord in valid_coords)
-        max_y = max(coord[1] for coord in valid_coords)
-    else:
-        min_x = max_x = min_y = max_y = 0
-    
-    img = Image.new('RGB', (width, height), (255, 255, 255))
-    draw = ImageDraw.Draw(img)
-    
-    prev_x, prev_y = None, None
-    for coord in path:
-        if coord is not None:
-            x, y = coord
-            x = int((x - min_x) / (max_x - min_x) * (width - 1))
-            y = int((y - min_y) / (max_y - min_y) * (height - 1))
-            if prev_x is not None and prev_y is not None:
-                draw.line([(prev_x, prev_y), (x, y)], fill=(0, 0, 0))
-            prev_x, prev_y = x, y
-        elif coord is None:
-            prev_x, prev_y = None, None
-    
-    img.save(output_path, 'PNG')
+def Test_Gcode_Generator():
+    for i, msg in enumerate(greeting_messages):
+        if len(msg) > 25:
+            msg = msg[:24]
+        msg = msg[:random.randrange(1, 24)]
+        if msg[-1] == ' ':
+            msg = msg[:-1]
 
-# for i,msg in enumerate(greeting_messages):
-#     if len(msg) > 25:
-#         msg = msg[:24]
-#     fontFile = f'Fonts/SVGFONT ({0}).svg'
-#     gcode = Helpers.GetGcode(msg,fontFile,0,0,0.9,750,750,25,6, True)
-#     #with open('drawing.gcode','w+') as f:
-#     #    f.write(gcode)
+        gcode = Helpers.GetGcode(
+            msg, 4, 0, 0, 1, 750, 750, 25, 10, True, 70, 40, 3, 3
+        )
+        plot_gcode_preview(gcode, f"_FontPreview/{i}.png")
 
-#     plot_gcode_preview(gcode, f"_Preview3/{i}.png")
-fontFile = f'Fonts/SVGFONT ({4}).svg'
-gcode = Helpers.GetGcode("Happy Birthday Aprajita",fontFile,5,10,1,750,750,25,6, True, 70, 40,10,10)
-create_png(gcode, f"_FontPreview/{0}.png", 512, 256)
-#plot_gcode_preview(gcode, f"_FontPreview/{0}.png")
+def send_command(command):
+        print(command)
+        global serial_port
+        data = bytes(
+            (command + '\n'),
+            'utf8'
+        )
+        serial_port.write(data)
+
+def read_msg_thread(pause_checker):
+        global serial_port
+        while True:
+            pause_checker()
+            try:
+                received_msg = serial_port.readline()  # read(self.serial_port.in_waiting)
+                if received_msg:
+                    msg = bytes(received_msg).decode('utf8')
+                    print(msg)
+            except Exception as e:
+                print(str(e))
+                raise e
+
+def Run_Printer_Stress_Test():
+    pos_list = []
+    gcode_list = []
+    max = 60
+    divisions = 10
+    for x in range(divisions+1):
+        val = (x/divisions) * max
+        if x%2 == 0:
+            pos_list.append((val,0))
+            pos_list.append((val,max))
+        else:
+            pos_list.append((val,max))
+            pos_list.append((val,0))
+    gcode = 'G0F1000Z-1;\n'
+    for x in pos_list:
+         gcode += f'G1F750X{x[0]}Y{x[1]};\n'
+
+    for x in pos_list:
+         gcode += f'G1F750X{x[1]}Y{x[0]};\n'
+    
+    temp = gcode
+    for x in range(10):
+         gcode+=temp
+         
+    gcode+= 'G0F1000Z1;\nG0F750X10Y85;'
+    gcode_list.append(gcode)
+    with open('test.gcode','w+') as f:
+        f.write(gcode)       
+
+    # for i, msg in enumerate(greeting_messages):
+    #     if len(msg) > 25:
+    #         msg = msg[:24]
+    #     msg = msg[:random.randrange(1, 24)]
+    #     if msg[-1] == ' ':
+    #         msg = msg[:-1]
+
+    #     gcode = Helpers.GetGcode(
+    #         msg, 4, 0, 0, 1, 750, 750, 25, 10, True, 70, 40, 3, 3
+    #     )
+    #     print(f'Added index {i}')
+    #     gcode_list.append(gcode)
+
+
+    global serial_port
+    read_thread = None
+    try:
+        port = int(input(f'{[x.device for x in list_ports.comports()]}\nInsert port index - '))
+    except Exception as e:
+        print(e)
+        return
+    print(list_ports.comports()[port])
+    try:
+                usb_device = list_ports.comports()[port].device
+                serial_port = Serial(
+                    usb_device,
+                    115200,
+                    8,
+                    'N',
+                    1,
+                    timeout=1
+                )
+
+    except Exception as e:
+        print(str(e))
+        return
+    
+    if serial_port.is_open:
+        read_thread = MyPausableThread(target=read_msg_thread)
+        read_thread.daemon = True
+        read_thread.start()
+        read_thread.resume()
+
+    print('Homing')
+    time.sleep(2)
+    send_command("\r\n\r\n")
+    time.sleep(1)
+    send_command('$X')
+    time.sleep(1)
+    send_command('G0F1000Z1')
+    time.sleep(1)
+    send_command('$H')
+    time.sleep(1)
+
+    input('Press Enter When Home is Complete.......\n')
+
+    time.sleep(1)
+    send_command('G10 P0 L20 X0 Y0 Z1')
+    time.sleep(1)
+    send_command('G0F1000Y85')
+    time.sleep(1)
+
+    input('Load Paper.......\n')
+    input('Press Enter to start Stress Test..........\n')
+
+    for gcode in gcode_list:
+        start = time.time()
+        read_thread.pause()
+
+        lines = gcode.split('\n')
+        for i, line in enumerate(lines):
+            l = line.strip()
+            print(l)
+            serial_port.write(bytes(l + '\n', 'utf8'))
+            grbl_out = bytes(serial_port.readline()).decode(
+                'utf8').strip()
+            print(grbl_out)
+        print(f'Time Taken : {time.time()-start:.2f}')
+        input('Load More Paper and Press Enter to start next print........\n')
+
+    serial_port.close()
+
+    
+
+Run_Printer_Stress_Test()
