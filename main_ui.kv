@@ -443,6 +443,30 @@ BoxLayout:
                         BoxLayout:
                             orientation:'horizontal'
                             MDLabel:
+                                text: '(flt) x Offset in mm (READONLY) $30'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,0.4,0.2,1
+                            TextInput:
+                                on_parent: app.settingUiDict['xoffset_flt'] = self
+                                background_color: get_color_from_hex('e15d2d')
+                                readonly: True
+                        BoxLayout:
+                            orientation:'horizontal'
+                            MDLabel:
+                                text: '(flt) y Offset in mm (READONLY) $31'
+                                padding: dp(10)
+                                halign: 'left'
+                                theme_text_color: 'Custom'
+                                text_color: 1,0.4,0.2,1
+                            TextInput:
+                                on_parent: app.settingUiDict['yoffset_flt'] = self
+                                background_color: get_color_from_hex('e15d2d')
+                                readonly: True
+                        BoxLayout:
+                            orientation:'horizontal'
+                            MDLabel:
                                 text: '(int) Single Stroke File     -def 4'
                                 padding: dp(10)
                                 halign: 'left'
@@ -460,26 +484,7 @@ BoxLayout:
                                 text_color: 1,1,1,1
                             TextInput:
                                 on_parent: app.settingUiDict['doublestrokefile_int'] = self
-                        BoxLayout:
-                            orientation:'horizontal'
-                            MDLabel:
-                                text: '(flt) x Offset in mm     -def 5'
-                                padding: dp(10)
-                                halign: 'left'
-                                theme_text_color: 'Custom'
-                                text_color: 1,1,1,1
-                            TextInput:
-                                on_parent: app.settingUiDict['xoffset_flt'] = self
-                        BoxLayout:
-                            orientation:'horizontal'
-                            MDLabel:
-                                text: '(flt) y Offset in mm     -def 10'
-                                padding: dp(10)
-                                halign: 'left'
-                                theme_text_color: 'Custom'
-                                text_color: 1,1,1,1
-                            TextInput:
-                                on_parent: app.settingUiDict['yoffset_flt'] = self
+                        
                         BoxLayout:
                             orientation:'horizontal'
                             MDLabel:

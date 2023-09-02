@@ -481,7 +481,7 @@ def GetPaths(full_text, fontDict, limit):
     return paths
 
 
-def GetGcode(text,fontid,xOffset,yOffset,scale,move_speed,cut_speed,letterLimit,wordwrapLimit,border,bed_size_x,bed_size_y,x_padding,y_padding):
+def GetGcode(text,fontid,xOffset,yOffset,scale,move_speed,cut_speed,letterLimit,wordwrapLimit,border,bed_size_x,bed_size_y,x_padding,y_padding,bedout = 85):
     processing_Scale = 1
     if len(text) <= wordwrapLimit:
         processing_Scale = lerp(0.5, 1, clamp(len(text) / wordwrapLimit, 0, 1))
@@ -522,7 +522,7 @@ G0 F1000 Z1;\n"""
 
     gcode += "G0 F1000 Z1;\n"
 
-    gcode += f"\nG1 F{move_speed} X10 Y85;\n"
+    gcode += f"\nG1 F{move_speed} X10 Y{bedout};\n"
 
     temp_gcode = gcode.split("\n")
     gcode = ""

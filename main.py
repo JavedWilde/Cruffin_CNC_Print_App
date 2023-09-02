@@ -44,7 +44,6 @@ class MainApp(MDApp):
 
         self.padding = [self.machine_settings['xpadding_int'],
                         self.machine_settings['ypadding_int']]
-        print(self.padding)
 
         super(MainApp, self).__init__(*args, **kwargs)
 
@@ -60,18 +59,8 @@ class MainApp(MDApp):
 
     # Helpers--------------------------------------------------------------------------
 
-    def update_settings_ui(self):
-        self.machine_settings = self.settings_storage.get('machine_settings')[
-            'settings']
-        for setting in self.settingUiDict.keys():
-            self.settingUiDict[setting].text = str(
-                self.machine_settings[setting])
-        self.padding = [self.machine_settings['xpadding_int'],
-                        self.machine_settings['ypadding_int']]
-        
-
     def home_machine(self):
-        time.sleep(2)
+        time.sleep(1)
         self.send_command("\r\n\r\n")
         time.sleep(1)
         self.send_command('$X')
@@ -232,6 +221,10 @@ class MainApp(MDApp):
                 self.set_connection_log('connection detected')
                 self.set_connection_indicator()
                 time.sleep(0.1)
+
+                self.update_settings_ui()
+                self.send_command(f'$$')
+
                 if run_startup:
                     threading.Thread(
                         target=self.setup_machine_thread, daemon=True).start()
@@ -334,6 +327,33 @@ class MainApp(MDApp):
 
     # Main Thread Transfer Functions
     @mainthread
+    def update_settings_ui(self):
+        self.machine_settings = self.settings_storage.get('machine_settings')[
+            'settings']
+        for setting in self.settingUiDict.keys():
+            self.settingUiDict[setting].text = str(
+                self.machine_settings[setting])
+        self.padding = [self.machine_settings['xpadding_int'],
+                        self.machine_settings['ypadding_int']]
+        
+    @mainthread
+    def save_settings(self):
+        dict = {}
+        for key, value in self.settingUiDict.items():
+            try:
+                if key.split('_')[1] == "flt":
+                    dict[key] = float(value.text)
+                else:
+                    dict[key] = int(value.text)
+            except Exception as e:
+                self.show_dialogue_box(f"{key} : \n{e}")
+                break
+        self.settings_storage.put('machine_settings', settings=dict)
+        self.update_settings_ui()
+        self.uiDict['nameinput'].max_text_length = self.machine_settings['letterlimit_int']
+
+
+    @mainthread
     def clear_name_input_field(self):
         self.uiDict['nameinput'].text = ''
 
@@ -345,8 +365,17 @@ class MainApp(MDApp):
             print('activation msg :' + msg)
             self.uiDict['developeroutput'].text += msg
             self.machine_connected = True
+        elif '$30' in msg.strip():
+            val = float(msg.strip().split('=')[1])
+            self.settingUiDict['xoffset_flt'].text = str(val)
+            self.save_settings()
+        elif '$31' in msg.strip():
+            val = float(msg.strip().split('=')[1])
+            self.settingUiDict['yoffset_flt'].text = str(val)
+            self.save_settings()
+
         if msg.strip() != 'ok':
-            print(msg)
+            print( 'Event : ' + msg)
             self.uiDict['developeroutput'].text += msg
 
     @mainthread
@@ -471,19 +500,7 @@ class MainApp(MDApp):
                 self.uiDict['developeroutput'].text += f"{com} - {com.device}\n"
 
     def on_button_save_settings(self):
-        dict = {}
-        for key, value in self.settingUiDict.items():
-            try:
-                if key.split('_')[1] == "flt":
-                    dict[key] = float(value.text)
-                else:
-                    dict[key] = int(value.text)
-            except Exception as e:
-                self.show_dialogue_box(f"{key} : \n{e}")
-                break
-        self.settings_storage.put('machine_settings', settings=dict)
-        self.update_settings_ui()
-        self.uiDict['nameinput'].max_text_length = self.machine_settings['letterlimit_int']
+        self.save_settings()
         self.show_dialogue_box(text='Settings Saved', header='Info')
 
 
