@@ -1,3 +1,11 @@
+from kivy.config import Config
+Config.set('graphics', 'resizable', False)
+from kivy.core.window import Window
+factor = 2
+Window.size = (int(1080/factor), int(1920/factor))
+Window.top = 50
+Window.left = 480
+
 import time
 from kivymd.app import MDApp
 from kivy.lang import Builder
@@ -12,7 +20,6 @@ from kivymd.uix.button import MDFlatButton
 from kivy.metrics import dp
 from kivy.storage.jsonstore import JsonStore
 from kivy.graphics.texture import Texture
-from kivy.core.window import Window
 
 from serial import SerialException
 import Helpers
@@ -24,10 +31,7 @@ else:
     from serial.tools import list_ports
     from serial import Serial
 
-factor = 3
-Window.size = (int(1080/factor), int(2412/factor))
-Window.top = 50
-Window.left = 0
+
 
 class MainApp(MDApp):
     # BASE PROGRAM
