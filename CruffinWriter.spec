@@ -4,12 +4,11 @@ from kivymd import hooks_path as kivymd_hooks_path
 
 block_cipher = None
 
-
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[("_settings.json",".")],
+    datas=[],
     hiddenimports=[],
     hookspath=[kivymd_hooks_path],
     hooksconfig={},
@@ -23,24 +22,32 @@ a = Analysis(
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
-    pyz,Tree('..\\_BUILD'),
+    pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,*[Tree(p) for p in (sdl2.dep_bins + glew.dep_bins)],
     [],
+    exclude_binaries=True,
     name='CruffinWriter',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
     icon=['icon.ico'],
+)
+coll = COLLECT(
+    exe,
+    Tree("..\\_BUILD"),
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    *[Tree(p) for p in (sdl2.dep_bins + glew.dep_bins)],
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='CruffinWriter',
 )

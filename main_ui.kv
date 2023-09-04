@@ -1,12 +1,14 @@
 #:import get_color_from_hex kivy.utils.get_color_from_hex
-#:import Gradient kivy_gradient.Gradient
+##:import Gradient kivy_gradient.Gradient
 BoxLayout:
     orientation: 'vertical'
     canvas.before:
+        Color:
+            rgba:get_color_from_hex('070606')
         Rectangle:
             pos:self.pos
             size:self.size
-            texture: Gradient.vertical(get_color_from_hex('141414'),get_color_from_hex('070606'))
+            #texture:Gradient.vertical(get_color_from_hex('141414'),get_color_from_hex('070606'))
     Image:
         source: 'Icons/grid.png'
         fit_mode : 'cover'
@@ -218,11 +220,13 @@ BoxLayout:
                         size_hint: None, None
                         size: self.parent.width,dp(75)
                         canvas.before:
+                            Color:
+                                rgba: get_color_from_hex("0A0B0A")
                             RoundedRectangle:
                                 pos: self.pos
                                 size: self.size
                                 radius: [dp(20),dp(20),dp(0),dp(0)]
-                                texture: Gradient.vertical(get_color_from_hex("0A0B0A"),get_color_from_hex("141515"))
+                                #texture:Gradient.vertical(get_color_from_hex("0A0B0A"),get_color_from_hex("141515"))
                         AnchorLayout:
                             anchor_x:'left'
                             anchor_y:'center'
