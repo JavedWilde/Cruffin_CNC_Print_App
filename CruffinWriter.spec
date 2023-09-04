@@ -9,7 +9,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[("_settings.json",".")],
     hiddenimports=[],
     hookspath=[kivymd_hooks_path],
     hooksconfig={},
