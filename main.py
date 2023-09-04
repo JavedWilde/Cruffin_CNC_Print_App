@@ -6,6 +6,8 @@ Window.size = (int(1080/factor), int(1920/factor))
 Window.top = 50
 Window.left = 480
 
+import os, sys
+from kivy.resources import resource_add_path, resource_find
 import time
 from kivymd.app import MDApp
 from kivy.lang import Builder
@@ -524,4 +526,10 @@ class MainApp(MDApp):
 
 
 if __name__ == '__main__':
-    MainApp().run()
+    try:
+        if hasattr(sys, '_MEIPASS'):
+            resource_add_path(os.path.join(sys._MEIPASS))
+        MainApp().run()
+    except Exception as e:
+        print(e)
+        input("Press enter.")
