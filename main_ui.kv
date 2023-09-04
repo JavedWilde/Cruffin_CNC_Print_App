@@ -92,7 +92,10 @@ BoxLayout:
                                 center_x: self.parent.center_x
                                 center_y: self.parent.center_y - dp(75)
                                 on_parent: app.uiDict['spinner'] = self
-
+                        Label:
+                            text: 'starting....'
+                            color: 1,1,1,0.25
+                            on_parent: app.uiDict['connectionloglive'] = self
                 Screen:
                     name:'main'
                     Image:
@@ -335,7 +338,7 @@ BoxLayout:
 
                         source: 'Icons/back_button_up.png'
                         center_x : self.parent.center_x
-                        top : dp(60)
+                        top : dp(75)
                         size_hint: None, None
                         size: self.parent.width * 0.9,dp(100)
 

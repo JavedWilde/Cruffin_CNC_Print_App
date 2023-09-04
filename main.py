@@ -12,6 +12,7 @@ from kivymd.uix.button import MDFlatButton
 from kivy.metrics import dp
 from kivy.storage.jsonstore import JsonStore
 from kivy.graphics.texture import Texture
+from kivy.core.window import Window
 
 from serial import SerialException
 import Helpers
@@ -23,6 +24,10 @@ else:
     from serial.tools import list_ports
     from serial import Serial
 
+factor = 3
+Window.size = (int(1080/factor), int(2412/factor))
+Window.top = 50
+Window.left = 0
 
 class MainApp(MDApp):
     # BASE PROGRAM
@@ -149,13 +154,18 @@ class MainApp(MDApp):
                 self.show_dialogue_box(str(e))
                 return
         else:
-            if len(list_ports.comports()) < 1:
+            selected_device = None
+            for device in list_ports.comports():
+                if 'CH340' in device.description:
+                    selected_device = device
+                    break
+            if not selected_device:
                 self.show_dialogue_box(
                     '\nNo device found, make sure the connections are fine. Try taking out the usb cable and putting it in again.')
                 return
-            comport = 1 if list_ports.comports()[0].device == 'COM1' else 0
+            #comport = 1 if list_ports.comports()[0].device == 'COM1' else 0
             try:
-                usb_device = list_ports.comports()[comport].device
+                usb_device = selected_device.device
                 self.serial_port = Serial(
                     usb_device,
                     115200,
@@ -169,7 +179,6 @@ class MainApp(MDApp):
                 self.show_dialogue_box(str(e))
                 return
 
-        print(self.serial_port)
         if self.serial_port.is_open and not self.read_thread:
             self.read_thread = MyPausableThread(target=self.read_msg_thread)
             self.read_thread.daemon = True
@@ -210,14 +219,14 @@ class MainApp(MDApp):
                 raise e
 
     def check_grbl_thread(self, run_startup=True):
-        print('checking for grbl')
+        self.print_and_log('checking for grbl')
         if run_startup:
             self.set_connection_log('checking connection...')
             self.set_screen('connecting')
         time.sleep(0.5)
         for _ in range(0, 500):
             if self.machine_connected:
-                print('grbl detected')
+                self.print_and_log('grbl detected')
                 self.set_connection_log('connection detected')
                 self.set_connection_indicator()
                 time.sleep(0.1)
@@ -237,7 +246,7 @@ class MainApp(MDApp):
         self.set_screen('connect', 'right')
 
     def setup_machine_thread(self):
-        print('homing')
+        self.print_and_log('homing')
         self.set_connection_log('Homing...')
         self.update_status('Home')
         self.home_machine()
@@ -247,11 +256,11 @@ class MainApp(MDApp):
             if self.machine_status == 'Idle':
                 self.set_connection_log('Home Complete')
                 time.sleep(0.1)
-                print('home complete')
+                self.print_and_log('home complete')
                 self.status_thread.pause()
                 break
 
-        print('preparing')
+        self.print_and_log('preparing')
         self.set_connection_log('Preparing...')
         self.set_origin()
         self.status_thread.resume()
@@ -260,11 +269,11 @@ class MainApp(MDApp):
             if self.machine_status == 'Idle':
                 self.set_connection_log('Prepare Complete')
                 time.sleep(0.1)
-                print('Prepare Complete')
+                self.print_and_log('Prepare Complete')
                 self.disable_spinner()
                 self.status_thread.pause()
                 break
-        print('ready')
+        self.print_and_log('ready')
         self.set_connection_log('Ready')
         time.sleep(0.5)
         self.set_screen('main')
@@ -362,7 +371,7 @@ class MainApp(MDApp):
         if msg.strip().startswith('<'):
             self.update_status(msg.strip()[1:-1].split('|')[0])
         elif '$X' in msg.strip():
-            print('activation msg :' + msg)
+            self.print_and_log('activation msg :' + msg)
             self.uiDict['developeroutput'].text += msg
             self.machine_connected = True
         elif '$30' in msg.strip():
@@ -375,7 +384,7 @@ class MainApp(MDApp):
             self.save_settings()
 
         if msg.strip() != 'ok':
-            print( 'Event : ' + msg)
+            self.print_and_log( 'Event : ' + msg)
             self.uiDict['developeroutput'].text += msg
 
     @mainthread
@@ -387,7 +396,7 @@ class MainApp(MDApp):
         self.serial_port.write(data)
         if '?' not in command:
             self.uiDict['developeroutput'].text += f'[Sent] {command}\n'
-            print(f'[Sent] {command}\n')
+            self.print_and_log(f'[Sent] {command}\n')
 
     @mainthread
     def set_screen(self, screenname, direction='left'):
@@ -418,6 +427,12 @@ class MainApp(MDApp):
     @mainthread
     def set_connection_indicator(self):
         self.uiDict['connectionstatus'].source = 'Icons/connected.png'
+
+    @mainthread
+    def print_and_log(self,text):
+        print(text)
+        if self.uiDict['sm'].current == 'connecting':
+            self.uiDict['connectionloglive'].text = text
 
     @mainthread
     def show_dialogue_box(self, text, header='Error'):
