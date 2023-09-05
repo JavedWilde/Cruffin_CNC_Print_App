@@ -1,10 +1,17 @@
-from kivy.config import Config
-Config.set('graphics', 'resizable', False)
-from kivy.core.window import Window
-factor = 2
-Window.size = (int(1080/factor), int(1920/factor))
-Window.top = 50
-Window.left = 480
+from kivy.utils import platform
+if platform == 'android':
+    from usb4a import usb
+    from usbserial4a import serial4a
+else:
+    from serial.tools import list_ports
+    from serial import Serial
+    from kivy.config import Config
+    Config.set('graphics', 'resizable', False)
+    from kivy.core.window import Window
+    factor = 2
+    Window.size = (int(1080/factor), int(1920/factor))
+    Window.top = 50
+    Window.left = 480
 
 import os, sys
 from kivy.resources import resource_add_path, resource_find
@@ -25,13 +32,8 @@ from kivy.graphics.texture import Texture
 
 from serial import SerialException
 import Helpers
+from kivy.logger import Logger
 
-if platform == 'android':
-    from usb4a import usb
-    from usbserial4a import serial4a
-else:
-    from serial.tools import list_ports
-    from serial import Serial
 
 
 
@@ -311,7 +313,7 @@ class MainApp(MDApp):
             self.serial_port.write(bytes(l + '\n', 'utf8'))
             grbl_out = bytes(self.serial_port.readline()).decode(
                 'utf8').strip()  # Wait for grbl response with carriage return
-            print(grbl_out)
+            Logger.info(grbl_out)
             # self.update_progress_bar(int((i/total_lines) * 100))
 
         if self.canceling_print:
@@ -390,7 +392,7 @@ class MainApp(MDApp):
             self.save_settings()
 
         if msg.strip() != 'ok':
-            self.print_and_log( 'Event : ' + msg)
+            self.print_and_log(msg)
             self.uiDict['developeroutput'].text += msg
 
     @mainthread
@@ -436,7 +438,7 @@ class MainApp(MDApp):
 
     @mainthread
     def print_and_log(self,text):
-        print(text)
+        Logger.debug(text)
         if self.uiDict['sm'].current == 'connecting':
             self.uiDict['connectionloglive'].text = text
 
@@ -531,5 +533,5 @@ if __name__ == '__main__':
             resource_add_path(os.path.join(sys._MEIPASS))
         MainApp().run()
     except Exception as e:
-        print(e)
+        Logger.error(e)
         input("Press enter.")

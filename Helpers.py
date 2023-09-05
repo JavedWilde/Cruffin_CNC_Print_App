@@ -14,6 +14,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib
+from kivy.logger import Logger
 
 matplotlib.use("Agg")
 
@@ -491,7 +492,7 @@ def GetGcode(text,fontid,xOffset,yOffset,scale,move_speed,cut_speed,letterLimit,
     fontDict = GetGlyphDictionary(f"Fonts/SVGFONT ({fontid}).svg")
 
     if len(text) > letterLimit:
-        print("Thats wat she said")
+        Logger.error("Thats wat she said")
         return None
 
     final_paths = GetPaths(text, fontDict, wordwrapLimit)

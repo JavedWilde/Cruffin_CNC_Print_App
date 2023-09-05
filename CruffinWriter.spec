@@ -2,15 +2,17 @@
 from kivy_deps import sdl2, glew
 from kivymd import hooks_path as kivymd_hooks_path
 
+
 block_cipher = None
+
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=[],
-    hookspath=[kivymd_hooks_path],
+    hiddenimports=[kivymd_hooks_path],
+    hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
