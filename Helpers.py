@@ -186,7 +186,7 @@ def word_wrapper(text, limit):
 
 
 def GenerateGcode(move_speed, cut_speed, svg):
-    gcode_compiler = Compiler(
+    gcode_compiler = Compiler(        
         interfaces.Gcode,
         movement_speed=move_speed,
         cutting_speed=cut_speed,

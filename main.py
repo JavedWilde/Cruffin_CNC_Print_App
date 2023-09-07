@@ -14,7 +14,7 @@ else:
     Window.left = 480
 
 import os, sys
-from kivy.resources import resource_add_path, resource_find
+from kivy.resources import resource_add_path
 import time
 from kivymd.app import MDApp
 from kivy.lang import Builder
@@ -314,6 +314,9 @@ class MainApp(MDApp):
             grbl_out = bytes(self.serial_port.readline()).decode(
                 'utf8').strip()  # Wait for grbl response with carriage return
             Logger.info(grbl_out)
+            if 'error' in grbl_out:
+                Logger.warning(l)
+                input()
             # self.update_progress_bar(int((i/total_lines) * 100))
 
         if self.canceling_print:
