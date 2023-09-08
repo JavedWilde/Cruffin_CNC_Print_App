@@ -304,19 +304,27 @@ class MainApp(MDApp):
         self.status_thread.pause()
 
         lines = gcode.split('\n')
-        total_lines = len(lines)
+        # total_lines = len(lines)
         for i, line in enumerate(lines):
+            grbl_out = 'None'
             if self.canceling_print:
                 break
             l = line.strip()  # Strip all EOL characters for consistency
-            # Send g-code block to grbl
+                # Send g-code block to grbl
             self.serial_port.write(bytes(l + '\n', 'utf8'))
             grbl_out = bytes(self.serial_port.readline()).decode(
                 'utf8').strip()  # Wait for grbl response with carriage return
+            Logger.info(l)
             Logger.info(grbl_out)
             if 'error' in grbl_out:
-                Logger.warning(l)
-                input()
+                Logger.warning(grbl_out)
+                while 'error' in grbl_out:
+                    self.serial_port.write(bytes(l + '\n', 'utf8'))
+                    grbl_out = bytes(self.serial_port.readline()).decode(
+                        'utf8').strip()  # Wait for grbl response with carriage return
+                    Logger.info(l)
+                    Logger.info(grbl_out)
+                
             # self.update_progress_bar(int((i/total_lines) * 100))
 
         if self.canceling_print:
@@ -478,6 +486,7 @@ class MainApp(MDApp):
             self.uiDict['ypadding'].text = str(self.padding[1])
             self.set_screen('preview')
         else:
+            #self.printing_thread()
             threading.Thread(target=self.printing_thread, daemon=True).start()
 
     def on_button_regenerate(self):

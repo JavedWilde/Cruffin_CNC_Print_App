@@ -322,6 +322,9 @@ def Run_Printer_Stress_Test():
 
     serial_port.close()
 
-    
-
-Run_Printer_Stress_Test()
+gcode = Helpers.GetGcode(
+            'Happy Birthday', 4, 0, 0, 1, 750, 750, 25, 10, False, 70, 40, 3, 3
+        )
+with open('test.gcode', 'w+') as f:
+     f.write(gcode)
+# Run_Printer_Stress_Test()
