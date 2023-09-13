@@ -628,7 +628,7 @@ def GcodePreProcess(fin):
         
         if len(block) == 0 :  # Ignore empty blocks
             
-            print ("Skipping: " + line.strip())
+            Logger.info("Skipping: " + line.strip())
             
         else :  # Process valid g-code clean block. Assumes no block delete characters or comments
             
@@ -676,7 +676,7 @@ def GcodePreProcess(fin):
                     elif inum is 93 : gc['inverse_feedrate_mode'] = True
                     elif inum is 94 : gc['inverse_feedrate_mode'] = False
                     else : 
-                        print ('Unsupported command ' + cmd + num + ' on line ' + str(l_count) )
+                        Logger.info ('Unsupported command ' + cmd + num + ' on line ' + str(l_count) )
                         if remove_unsupported : blk['unsupported'].append(zip(g_cmd,g_num).index((cmd,num)))
                 elif cmd is 'M' :
                     if   inum in [0,1] : pass   # Program Pause
@@ -685,7 +685,7 @@ def GcodePreProcess(fin):
                     elif inum is 4 : pass   # Spindle Direction -1
                     elif inum is 5 : pass   # Spindle Direction 0
                     else : 
-                        print ('Unsupported command ' + cmd + num + ' on line ' + str(l_count) )
+                        Logger.info ('Unsupported command ' + cmd + num + ' on line ' + str(l_count) )
                         if remove_unsupported : blk['unsupported'].append(zip(g_cmd,g_num).index((cmd,num)))
                 elif cmd is 'T' : pass      # Tool Number
                 
@@ -752,7 +752,7 @@ def GcodePreProcess(fin):
                     depth_per_segment = depth/segments
                     
                     # Generate arc linear segments
-                    if verbose: print ('Converting: '+ block + ' : ' + str(l_count))
+                    if verbose: Logger.info ('Converting: '+ block + ' : ' + str(l_count))
                     fout.append('G01F'+fout_conv(gc['feed_rate']))
                     if not gc['absolute_mode'] : fout.append('G90')    
                     arc_target = [0,0,0]
@@ -777,8 +777,8 @@ def GcodePreProcess(fin):
                     for i in blk['unsupported'][::-1] : del g_cmd[i]; del g_num[i]
                 out_block = "".join([i+j for (i,j) in zip(g_cmd,g_num)]) 
                 if len(out_block) : 
-                    if verbose : print ("Writing: " + out_block + ' : ' + str(l_count))
+                    if verbose : Logger.info ("Writing: " + out_block + ' : ' + str(l_count))
                     fout.append(out_block + '\n')
 
-    print ('Done!')
+    Logger.info ('Done!')
     return '\n'.join([str(elem) for elem in fout])
